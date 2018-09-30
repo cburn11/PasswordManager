@@ -1,0 +1,1 @@
+BOOL GeneratePassword(int * pCounts, WCHAR ** pszPassword, int * pcchPassword);
