@@ -33,6 +33,5 @@ struct UserData {
 		if( szTempFilePath )	delete[] szTempFilePath;
 		if( pTools )			delete pTools;
 		if( pSettings )			delete pSettings;
-		if( hmenuContext )		DestroyMenu(hmenuContext);
 	}
 };

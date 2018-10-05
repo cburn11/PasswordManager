@@ -73,3 +73,5 @@ void SwapAccount(HWND hwndParent, int delta);
 void MoveAccount(HWND hwndParent, int type);
 
 HMENU CreateContextMenu(HWND hwnd);
+
+void ShowContextMenu(HWND hwnd, int clientX, int clientY);

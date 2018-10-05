@@ -951,3 +951,15 @@ HMENU CreateContextMenu(HWND hwnd) {
 	
 	return hmenuAction;
 }
+
+void ShowContextMenu(HWND hwnd, int clientX, int clientY) {
+
+	if( GetSelectedAccountIndex(hwnd) < 0 )	return;
+
+	const UserData * pUserData = (UserData *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
+	POINT p{ clientX, clientY };
+	ClientToScreen(hwnd, &p);
+
+	auto ret = TrackPopupMenuEx(pUserData->hmenuContext, TPM_TOPALIGN | TPM_LEFTALIGN, p.x, p.y, hwnd, NULL);
+}

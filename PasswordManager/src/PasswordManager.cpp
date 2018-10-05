@@ -366,10 +366,7 @@ void Cls_OnRButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags
 
 	CallWindowProc((WNDPROC) pUserData->oldproc, hwnd, WM_LBUTTONDOWN, (WPARAM) keyFlags, MAKELPARAM(x, y));
 
-	POINT p{ x, y };
-	ClientToScreen(hwnd, &p);
-
-	auto ret = TrackPopupMenuEx(pUserData->hmenuContext, TPM_TOPALIGN | TPM_LEFTALIGN, p.x, p.y, hwnd, NULL);
+	ShowContextMenu(hwnd, x, y);
 }
 
 void Cls_OnRButtonUp(HWND hwnd, int x, int y, UINT keyFlags) {
