@@ -23,6 +23,8 @@ void Cls_OnDestroy(HWND hwnd);
 void Cls_OnTimer(HWND hwnd, UINT id);
 void Cls_OnMouseWheel(HWND hwnd, int xPos, int yPos, int zDelta, UINT fwKeys);
 void Cls_OnKey(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags);
+void Cls_OnRButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags);
+void Cls_OnRButtonUp(HWND hwnd, int x, int y, UINT keyFlags);
 
 BOOL Cls_OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct);
 
@@ -94,7 +96,10 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 		HANDLE_MSG(hwnd, WM_COMMAND, Cls_OnCommand);		
 		HANDLE_MSG(hwnd, WM_TIMER, Cls_OnTimer);
 		HANDLE_MSG(hwnd, WM_MOUSEWHEEL, Cls_OnMouseWheel);
-				
+			
+		HANDLE_MSG(hwnd, WM_RBUTTONDOWN, Cls_OnRButtonDown);
+		HANDLE_MSG(hwnd, WM_RBUTTONUP, Cls_OnRButtonUp);
+
 	case WM_CREATE:
 
 		Cls_OnCreate(hwnd, (LPCREATESTRUCT) lParam);
@@ -167,6 +172,8 @@ BOOL Cls_OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct) {
 
 	g_hwndApp = hwnd;
 
+	pUserData->hmenuContext = CreateContextMenu(hwnd);
+	
 	return TRUE;
 }
 
@@ -349,4 +356,27 @@ void Cls_OnKey(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags) {
 
 	if( cur_sel > -1 )
 		UpdateMenuItems(hwnd);
+}
+
+void Cls_OnRButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags) {
+
+	static const UserData * pUserData = (UserData *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
+	if( !pUserData )	return;
+
+	CallWindowProc((WNDPROC) pUserData->oldproc, hwnd, WM_LBUTTONDOWN, (WPARAM) keyFlags, MAKELPARAM(x, y));
+
+	POINT p{ x, y };
+	ClientToScreen(hwnd, &p);
+
+	auto ret = TrackPopupMenuEx(pUserData->hmenuContext, TPM_TOPALIGN | TPM_LEFTALIGN, p.x, p.y, hwnd, NULL);
+}
+
+void Cls_OnRButtonUp(HWND hwnd, int x, int y, UINT keyFlags) {
+
+	static const UserData * pUserData = (UserData *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
+	if( !pUserData )	return;
+
+	CallWindowProc((WNDPROC) pUserData->oldproc, hwnd, WM_LBUTTONUP, (WPARAM) keyFlags, MAKELPARAM(x, y));
 }

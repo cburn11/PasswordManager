@@ -71,3 +71,5 @@ void SwapAccount(HWND hwndParent, int delta);
 #define MOVE_ACCOUNT_AFTER	1
 
 void MoveAccount(HWND hwndParent, int type);
+
+HMENU CreateContextMenu(HWND hwnd);

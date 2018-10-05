@@ -10,6 +10,7 @@
 #include <vector>
 #include <algorithm>
 #include <regex>
+#include <memory>
 
 #include "Accounts.h"
 #include "AccountEditor.h"
@@ -942,4 +943,11 @@ void MoveAccount(HWND hwndParent, int type) {
 			ListBox_SetCurSel(hwndParent, movedIndex);
 		}
 	}
+}
+
+HMENU CreateContextMenu(HWND hwnd) {
+	
+	auto hmenuAction = GetSubMenu(GetMenu(hwnd), 1);
+	
+	return hmenuAction;
 }
