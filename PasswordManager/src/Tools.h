@@ -10,14 +10,18 @@
 #include "WindowClass.h"
 #include "resource.h"
 
+#include "ApplicationSettings.h"
+
 using tool_pair = std::pair<std::wstring, std::wstring>;
 
 class Tools : public ModalDialog<Tools> {	
 
+	ApplicationSettings * m_pSettings;
+
 	std::vector<tool_pair> m_tools;
 	std::vector<tool_pair> m_toolsDelta;
 	
-	bool m_fToolsChanged = false;
+	bool m_fToolsChanged = true;
 
 	bool LoadToolsFromRegistry();
 	bool SaveToolsToRegistry();
@@ -39,7 +43,7 @@ class Tools : public ModalDialog<Tools> {
 
 public:
 
-	Tools();
+	Tools(ApplicationSettings * pSettings);
 
 	~Tools();
 

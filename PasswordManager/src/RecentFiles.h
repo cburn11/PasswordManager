@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 
+#include "ApplicationSettings.h"
+
 class RecentFiles {
 
 	std::vector<std::wstring> m_vFilepaths;
@@ -17,9 +19,11 @@ class RecentFiles {
 
 	bool IsFilepathAlreadyInList(const wchar_t * szFilepath);
 
+	ApplicationSettings * m_pSettings;
+
 public:
 
-	RecentFiles() {
+	RecentFiles(ApplicationSettings * pSettings) : m_pSettings{ pSettings } {
 
 		m_vFilepaths.reserve(5);
 

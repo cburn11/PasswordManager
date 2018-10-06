@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "ApplicationSettings.h"
+
 class BrowserCommand {
 
 	std::wstring	m_browserpath;
@@ -12,9 +14,11 @@ class BrowserCommand {
 	void LoadFromRegistry();
 	void SaveToRegistry();
 
+	ApplicationSettings * m_pSettings;
+
 public:
 
-	BrowserCommand() {
+	BrowserCommand(ApplicationSettings * pSettings) : m_pSettings{ pSettings } {
 		LoadFromRegistry();
 	}
 

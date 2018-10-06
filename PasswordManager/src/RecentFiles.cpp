@@ -18,76 +18,42 @@ using std::end;
 
 void RecentFiles::LoadRecentFilesFromRegistry() {
 
-	HKEY hRecentFilesKey;
-
-	auto lRes = RegOpenKey(HKEY_CURRENT_USER, APPLICATION_SUBKEY, &hRecentFilesKey);
-	if( lRes == ERROR_SUCCESS ) {
-
-		DWORD type, cbStr;
-		lRes = RegGetValue(hRecentFilesKey, nullptr, L"RecentFiles", RRF_RT_REG_MULTI_SZ,
-			&type, nullptr, &cbStr);
-		if( lRes == ERROR_SUCCESS ) {
-			WCHAR * szRecentFiles = 	// Double /0 terminated string
-				( WCHAR * ) new WCHAR[cbStr]{ 0 };
-			WCHAR * szOrig = szRecentFiles;
-			lRes = RegGetValue(hRecentFilesKey, nullptr, L"RecentFiles", RRF_RT_REG_MULTI_SZ,
-				&type, szRecentFiles, &cbStr);
-			if( lRes == ERROR_SUCCESS ) {
-				auto cch = wcslen(szRecentFiles);
-				while( cch > 0 ) {
-					m_vFilepaths.push_back(szRecentFiles);
-					szRecentFiles += cch + 1;
-					cch = wcslen(szRecentFiles);
-				}
-			}
-
-			delete[] szOrig;
-
-		} 
-
-		RegCloseKey(hRecentFilesKey);
-
-	} else if( ERROR_FILE_NOT_FOUND == lRes ) {
-
-		//	Create Recent files for current user
-
-		HKEY hPackageKey;
-		lRes = RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Clifford", &hPackageKey);
-
-		RegCloseKey(hPackageKey);
-
-		lRes = RegCreateKey(HKEY_CURRENT_USER, APPLICATION_SUBKEY, &hRecentFilesKey);
-
-		RegCloseKey(hRecentFilesKey);
+	auto szRecentFiles = 	// Double /0 terminated string
+		m_pSettings->getMultiSZ(L"RecentFiles");
+		
+	WCHAR * szOrig = szRecentFiles;
+			
+	auto cch = wcslen(szRecentFiles);
+	while( cch > 0 ) {
+		m_vFilepaths.push_back(szRecentFiles);
+		szRecentFiles += cch + 1;
+		cch = wcslen(szRecentFiles);
 	}
 }
 
 void RecentFiles::SaveRecentFilesInRegistry() {
-	HKEY hRecentFilesKey;
 
-	auto lRes = RegOpenKey(HKEY_CURRENT_USER, APPLICATION_SUBKEY, &hRecentFilesKey);
-	if( lRes == ERROR_SUCCESS ) {
+	ULONG size = 0;
+	for_each(begin(m_vFilepaths), end(m_vFilepaths),
+		[&size](wstring const & file) {
+		size += wcslen(file.c_str()) + 1;	// +1 for null
+	});
 
-		ULONG size = 0;
+	if( size == 0 )	// empty
+		size = 1;
+
+	auto dsz = SysAllocStringLen(L"", size + 1);	//	+1 for final null
+	//	Don't call SysFreeString, ApplicationSettings now owns dsz
+	
+	if( dsz ) {
+		size = 0;
 		for_each(begin(m_vFilepaths), end(m_vFilepaths),
-			[&size](wstring const & file) {
-			size += wcslen(file.c_str()) + 1;
+			[&size, dsz](wstring const & filepath) {
+			size += wsprintf(dsz + size, L"%s", filepath.c_str());
+			++size;
 		});
 
-		WCHAR * dsz = ( WCHAR * ) new WCHAR[size + 1]{ 0 };
-		if( dsz ) {
-			size = 0;
-			for_each(begin(m_vFilepaths), end(m_vFilepaths),
-				[&size, dsz](wstring const & filepath) {
-				size += wsprintf(dsz + size, L"%s", filepath.c_str());
-				++size;
-			});
-
-			lRes = RegSetValueEx(hRecentFilesKey, L"RecentFiles", 0, REG_MULTI_SZ, (BYTE *) dsz, size * sizeof(*dsz));
-			delete[] dsz;
-		}
-
-		RegCloseKey(hRecentFilesKey);
+		m_pSettings->setMultiSZ(L"RecentFiles", dsz);
 	}
 }
 

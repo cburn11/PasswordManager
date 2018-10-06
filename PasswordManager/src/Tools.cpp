@@ -1,12 +1,8 @@
 #include <Windows.h>
 #include <windowsx.h>
 
-#include <vector>
-#include <string>
-#include <utility>
-#include <algorithm>
-
 #include "PasswordManager.h"
+
 #include "Tools.h"
 #include "CommonHeaders.h"
 #include "resource.h"
@@ -63,8 +59,7 @@ WCHAR * GetComboText() {
 	WCHAR * szComboEntry = new WCHAR[cch + 1];
 	
 	if( szComboEntry ) {
-
-
+		
 		ComboBox_GetLBText(g_hwndCombo, sel, szComboEntry);
 	}
 
@@ -85,7 +80,7 @@ WCHAR * GetEditText(HWND hwndEdit) {
 	return szEditText;
 }
 
-Tools::Tools() {
+Tools::Tools(ApplicationSettings * pSettings) : m_pSettings{ pSettings } {
 
 	m_hInstance = GetModuleHandle(NULL);
 	m_szTemplate = MAKEINTRESOURCE(IDD_DIALOG_TOOLS);
@@ -103,86 +98,51 @@ Tools::~Tools() {
 
 bool Tools::LoadToolsFromRegistry() {
 
-	bool ret = false;
+	const WCHAR * szSubStrings = m_pSettings->getMultiSZ(L"Tools");
 
-	HKEY hRecentFilesKey;
+	for( auto cch = wcslen(szSubStrings); cch > 0; cch = wcslen(szSubStrings) ) {
 
-	auto lRes = RegOpenKey(HKEY_CURRENT_USER, APPLICATION_SUBKEY, &hRecentFilesKey);
-	if( lRes == ERROR_SUCCESS ) {
+		wstring caption{ szSubStrings };
+		szSubStrings += cch + 1;
 
-		DWORD type, cbStr;
-		lRes = RegGetValue(hRecentFilesKey, nullptr, L"Tools", RRF_RT_REG_MULTI_SZ,
-			&type, nullptr, &cbStr);
-		if( lRes == ERROR_SUCCESS ) {
+		cch = wcslen(szSubStrings);
+		wstring target{ szSubStrings };
+		szSubStrings += cch + 1;
 
-			WCHAR * szSubStrings = 	( WCHAR * ) new WCHAR[cbStr]{ 0 };	// Double /0 terminated string
-			lRes = RegGetValue(hRecentFilesKey, nullptr, L"Tools", RRF_RT_REG_MULTI_SZ,
-				&type, szSubStrings, &cbStr);
-			if( lRes == ERROR_SUCCESS ) {
+		m_tools.push_back(tool_pair{ caption, target });
 
-				for( auto cch = wcslen(szSubStrings); cch > 0; cch = wcslen(szSubStrings) ) {
-
-					wstring caption{ szSubStrings };
-					szSubStrings += cch + 1;
-
-					cch = wcslen(szSubStrings);
-					wstring target{ szSubStrings };
-					szSubStrings += cch + 1;
-
-					m_tools.push_back(tool_pair{ caption, target });
-
-				}
-
-				ret = true;
-			}
-		}
-
-		RegCloseKey(hRecentFilesKey);
 	}
-
-	return ret;
+		
+	return true;
 }
 
 bool Tools::SaveToolsToRegistry() {
 	
-	bool ret = false;
+	ULONG size = 0;
+	for_each(begin(m_tools), end(m_tools),
+		[&size](tool_pair const & p) {
+		size += p.first.length() + 1;		// cch + null
+		size += p.second.length() + 1;		// cch + null
+	});
+	
+	auto dsz = SysAllocStringLen(nullptr, size + 1);	// + 1 for final null
+	//Don't call SysFreeString(dsz), dsz is now owned by the internal structure of ApplicationSettings		
 
-	HKEY hRecentFilesKey;
-
-	auto lRes = RegOpenKey(HKEY_CURRENT_USER, APPLICATION_SUBKEY, &hRecentFilesKey);
-	if( lRes == ERROR_SUCCESS ) {
-
-		ULONG size = 0;
+	if( dsz ) {
+		size = 0;
 		for_each(begin(m_tools), end(m_tools),
-			[&size](tool_pair const & p) {
-			size += wcslen(p.first.c_str()) + 1;
-			size += wcslen(p.second.c_str()) + 1;
+			[&size, dsz](tool_pair const & p) {
+			size += wsprintf(dsz + size, L"%s", p.first.c_str());
+			++size;
+			size += wsprintf(dsz + size, L"%s", p.second.c_str());
+			++size;
 		});
 
-		WCHAR * dsz = ( WCHAR * ) new WCHAR[size + 1]{ 0 };
-		if( dsz ) {
-			size = 0;
-			for_each(begin(m_tools), end(m_tools),
-				[&size, dsz](tool_pair const & p) {
-				size += wsprintf(dsz + size, L"%s", p.first.c_str());
-				++size;
-				size += wsprintf(dsz + size, L"%s", p.second.c_str());
-				++size;
-			});
-
-			lRes = RegSetValueEx(hRecentFilesKey, L"Tools", 0, REG_MULTI_SZ, (BYTE *) dsz, size * sizeof(*dsz));
-
-			m_fToolsChanged = false;
-
-			if( lRes ) ret = true;
-
-			delete[] dsz;
-		}
-
-		RegCloseKey(hRecentFilesKey);
+		m_pSettings->setMultiSZ(L"Tools", dsz);
+		m_fToolsChanged = false;
 	}
-
-	return ret;
+			
+	return true;
 }
 
 BOOL Tools::Cls_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam) {

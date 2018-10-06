@@ -11,54 +11,19 @@
 #define APPLICATION_SUBKEY	L"SOFTWARE\\Clifford\\PasswordManager"
 
 void BrowserCommand::LoadFromRegistry() {
-
-	HKEY hApplicationKey;
-	auto lRes = RegOpenKey(HKEY_CURRENT_USER, APPLICATION_SUBKEY, &hApplicationKey);
-	if( ERROR_SUCCESS == lRes ) {
-
-		WCHAR * szBrowserPath, *szParameters;
 		
-		DWORD type, cbStr;
-
-		lRes = lRes = RegGetValue(hApplicationKey, nullptr, L"BrowserPath", RRF_RT_REG_SZ,
-			&type, nullptr, &cbStr);
-		if( ERROR_SUCCESS == lRes ) {
-			szBrowserPath = ( WCHAR * ) new WCHAR[cbStr]{ 0 };
-			lRes = lRes = RegGetValue(hApplicationKey, nullptr, L"BrowserPath", RRF_RT_REG_SZ,
-				&type, szBrowserPath, &cbStr);
-			m_browserpath = szBrowserPath;
-			delete[] szBrowserPath;
-		}
-
-		lRes = lRes = RegGetValue(hApplicationKey, nullptr, L"Parameters", RRF_RT_REG_SZ,
-			&type, nullptr, &cbStr);
-		if( ERROR_SUCCESS == lRes ) {
-			szParameters = ( WCHAR * ) new WCHAR[cbStr]{ 0 };
-			lRes = lRes = RegGetValue(hApplicationKey, nullptr, L"Parameters", RRF_RT_REG_SZ,
-				&type, szParameters, &cbStr);
-			m_parameters = szParameters;
-			delete[] szParameters;
-		}
-
-		RegCloseKey(hApplicationKey);
-
-	}
+	m_browserpath = m_pSettings->getSZ(L"BrowserPath");
+	
+	m_parameters = m_pSettings->getSZ(L"Parameters");
 }
 
 void BrowserCommand::SaveToRegistry() {
 
-	HKEY hApplicationKey;
-	auto lRes = RegOpenKey(HKEY_CURRENT_USER, APPLICATION_SUBKEY, &hApplicationKey);
-	if( ERROR_SUCCESS == lRes ) {
+	CComBSTR browserpath{ m_browserpath.c_str() };
+	m_pSettings->setSZ(L"BrowserPath", browserpath);
 
-		lRes = RegSetValueEx(hApplicationKey, L"BrowserPath", 0, REG_SZ,
-			(const BYTE *) (m_browserpath.c_str()), ( m_browserpath.size() + 1 ) * sizeof(WCHAR));
-
-		lRes = RegSetValueEx(hApplicationKey, L"Parameters", 0, REG_SZ,
-			(const BYTE *) ( m_parameters.c_str() ), ( m_parameters.size() + 1 ) * sizeof(WCHAR));
-
-		RegCloseKey(hApplicationKey);
-	}
+	CComBSTR parameters{ m_parameters.c_str() };
+	m_pSettings->setSZ(L"Parameters", parameters);
 }
 
 namespace BrowserCommandDialog {

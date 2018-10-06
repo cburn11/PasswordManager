@@ -50,12 +50,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 
 	UserData	* pUserData = new UserData;
 	pUserData->oldproc = RegisterMainWindow();
-	pUserData->pSettings = new ApplicationSettings;
+	pUserData->pSettings = new ApplicationSettings{ APPLICATION_SUBKEY };
+
+	auto x = pUserData->pSettings->getDWORD(L"x");
+	auto y = pUserData->pSettings->getDWORD(L"y");
+	auto width = pUserData->pSettings->getDWORD(L"width");
+	auto height = pUserData->pSettings->getDWORD(L"height");
 
 	auto hwnd = CreateWindow(L"ListBoxCustom", L"Password Manager",
 		WS_OVERLAPPEDWINDOW | WS_VSCROLL | WS_HSCROLL |LBS_USETABSTOPS,
-		pUserData->pSettings->x, pUserData->pSettings->y,
-		pUserData->pSettings->width, pUserData->pSettings->height,
+		x, y, width, height,
 		NULL, hmenuMain, hInstance, (void *) pUserData);
 	if( !hwnd ) {
 		DWORD error = GetLastError();
@@ -149,12 +153,12 @@ BOOL Cls_OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct) {
 
 	UpdateMenuItems(hwnd);
 
-	pUserData->pRecentFiles = new RecentFiles{};
+	pUserData->pRecentFiles = new RecentFiles{ pUserData->pSettings };
 	CreateRecentFilesMenu(hwnd);
 
-	pUserData->pBrowserCommand = new BrowserCommand{};
+	pUserData->pBrowserCommand = new BrowserCommand{ pUserData->pSettings };
 
-	pUserData->pTools = new Tools();
+	pUserData->pTools = new Tools(pUserData->pSettings);
 
 	PopulateToolsMenu(hwnd);
 

@@ -68,10 +68,10 @@ void ExitApplication(HWND hwnd) {
 
 			if( rect.left > 0 && rect.top > 0 ) {
 
-				pUserData->pSettings->height = rect.bottom - rect.top;
-				pUserData->pSettings->width = rect.right - rect.left;
-				pUserData->pSettings->x = rect.left;
-				pUserData->pSettings->y = rect.top;
+				pUserData->pSettings->setDWORD(L"height", rect.bottom - rect.top);
+				pUserData->pSettings->setDWORD(L"width", rect.right - rect.left);
+				pUserData->pSettings->setDWORD(L"x", rect.left);
+				pUserData->pSettings->setDWORD(L"y", rect.top);
 			}
 		}
 	}
@@ -128,7 +128,6 @@ bool GetFilename(HWND hwndParent, GetFilenameType type, const WCHAR ** pszFilena
 		}
 
 		*pszFilename = szFilename;
-
 
 		return true;
 
