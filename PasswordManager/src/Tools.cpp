@@ -82,6 +82,8 @@ WCHAR * GetEditText(HWND hwndEdit) {
 
 Tools::Tools(ApplicationSettings * pSettings) : m_pSettings{ pSettings } {
 
+	if( !pSettings )	throw std::exception{ "nullptr" };
+
 	m_hInstance = GetModuleHandle(NULL);
 	m_szTemplate = MAKEINTRESOURCE(IDD_DIALOG_TOOLS);
 
@@ -99,6 +101,8 @@ Tools::~Tools() {
 bool Tools::LoadToolsFromRegistry() {
 
 	const WCHAR * szSubStrings = m_pSettings->getMultiSZ(L"Tools");
+
+	if( !szSubStrings )		return false;
 
 	for( auto cch = wcslen(szSubStrings); cch > 0; cch = wcslen(szSubStrings) ) {
 
@@ -125,10 +129,13 @@ bool Tools::SaveToolsToRegistry() {
 		size += p.second.length() + 1;		// cch + null
 	});
 	
-	auto dsz = SysAllocStringLen(nullptr, size + 1);	// + 1 for final null
+	auto dsz = SysAllocStringLen(nullptr, size);	//	SysAllocStringLen allocates size + 1 for the terminating null
+													//	But a subsequent call to SysStringLen or SysStringByteLen will
+													//	return size, not the allocated size to terminating null
 	//Don't call SysFreeString(dsz), dsz is now owned by the internal structure of ApplicationSettings		
 
 	if( dsz ) {
+		memset(dsz, 0, size * sizeof(dsz[0]));
 		size = 0;
 		for_each(begin(m_tools), end(m_tools),
 			[&size, dsz](tool_pair const & p) {

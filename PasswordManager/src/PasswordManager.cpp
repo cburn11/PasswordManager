@@ -52,10 +52,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 	pUserData->oldproc = RegisterMainWindow();
 	pUserData->pSettings = new ApplicationSettings{ APPLICATION_SUBKEY };
 
-	auto x = pUserData->pSettings->getDWORD(L"x");
-	auto y = pUserData->pSettings->getDWORD(L"y");
-	auto width = pUserData->pSettings->getDWORD(L"width");
-	auto height = pUserData->pSettings->getDWORD(L"height");
+	auto x = pUserData->pSettings->getDWORD(L"x");				if( 0 == x )	x = 100;
+	auto y = pUserData->pSettings->getDWORD(L"y");				if( 0 == y )	y = 100;
+	auto width = pUserData->pSettings->getDWORD(L"width");		if( 0 == width )	width = 800;
+	auto height = pUserData->pSettings->getDWORD(L"height");	if( 0 == height )	height = 600;
 
 	auto hwnd = CreateWindow(L"ListBoxCustom", L"Password Manager",
 		WS_OVERLAPPEDWINDOW | WS_VSCROLL | WS_HSCROLL |LBS_USETABSTOPS,
@@ -360,6 +360,13 @@ void Cls_OnKey(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags) {
 
 	if( cur_sel > -1 )
 		UpdateMenuItems(hwnd);
+
+	switch( vk ) {
+
+	case VK_APPS:
+		ShowContextMenu(hwnd, 10, 10);
+		break;
+	}
 }
 
 void Cls_OnRButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags) {

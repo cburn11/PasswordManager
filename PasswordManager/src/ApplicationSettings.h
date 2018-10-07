@@ -25,6 +25,8 @@ public:
 
 private:
 
+	struct excpNoApplicationSubkey {};
+
 	class RegVariant {
 
 	public:
@@ -35,6 +37,9 @@ private:
 		RegVariant(RegVariant&& rv);
 
 		~RegVariant();
+
+		void SetMultiSZ() { m_fMultiSZ = true; }
+		void ClearMultiSZ() { m_fMultiSZ = false; }
 
 		operator VARIANT() { return m_var; }
 
@@ -64,4 +69,5 @@ private:
 	VARIANT getValue(const WCHAR * szKey);
 	VARIANT setValue(const WCHAR * szKey, VARIANT * pvarValue);
 
+	void CreateApplicationSubKey();
 };

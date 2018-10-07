@@ -12,7 +12,7 @@ class RecentFiles {
 
 	std::vector<std::wstring> m_vFilepaths;
 
-	bool m_fChanged;
+	bool m_fChanged = false;
 
 	void LoadRecentFilesFromRegistry();
 	void SaveRecentFilesInRegistry();
@@ -24,6 +24,8 @@ class RecentFiles {
 public:
 
 	RecentFiles(ApplicationSettings * pSettings) : m_pSettings{ pSettings } {
+
+		if( !pSettings )	throw std::exception{ "nullptr" };
 
 		m_vFilepaths.reserve(5);
 

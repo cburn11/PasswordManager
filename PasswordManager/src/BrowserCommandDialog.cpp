@@ -12,9 +12,11 @@
 
 void BrowserCommand::LoadFromRegistry() {
 		
-	m_browserpath = m_pSettings->getSZ(L"BrowserPath");
+	auto szBrowserPath = m_pSettings->getSZ(L"BrowserPath");
+	if( szBrowserPath != nullptr )	m_browserpath = szBrowserPath;
 	
-	m_parameters = m_pSettings->getSZ(L"Parameters");
+	auto szParameters = m_pSettings->getSZ(L"Parameters");
+	if( szParameters != nullptr )	m_parameters = szParameters;
 }
 
 void BrowserCommand::SaveToRegistry() {

@@ -2,17 +2,33 @@
 
 #include "ApplicationSettings.h"
 
+
 ApplicationSettings::ApplicationSettings(const WCHAR * szAppSubKey) : m_AppSubKey{ szAppSubKey } {
 	
-	if( !szAppSubKey ) throw;
+	if( !szAppSubKey ) throw std::exception{"nullptr"};
 
-	if( wcslen(szAppSubKey) < 1 ) throw;
-
-	EnumKeyValues();
+	if( wcslen(szAppSubKey) < 1 ) throw std::exception{"empty key"};
+	
+	try {
+		EnumKeyValues();
+	} catch(excpNoApplicationSubkey){
+		CreateApplicationSubKey();
+	}
 }
 
 ApplicationSettings::~ApplicationSettings() {
 
+}
+
+void ApplicationSettings::CreateApplicationSubKey() {
+
+	HKEY hPackageKey, hApplicationKey;
+	auto lRes = RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Clifford", &hPackageKey);
+
+	RegCloseKey(hPackageKey);
+
+	lRes = RegCreateKey(HKEY_CURRENT_USER, m_AppSubKey.c_str(), &hApplicationKey);
+	RegCloseKey(hApplicationKey);
 }
 
 bool ApplicationSettings::EnumKeyValues() {
@@ -20,7 +36,7 @@ bool ApplicationSettings::EnumKeyValues() {
 	LSTATUS res;
 	HKEY hKey;
 	res = RegOpenKey(HKEY_CURRENT_USER, m_AppSubKey.c_str(), &hKey);
-	if( ERROR_SUCCESS != res )		return false;
+	if( ERROR_SUCCESS != res )		throw excpNoApplicationSubkey{};
 
 	constexpr UINT cchMax = MAXSHORT;
 	DWORD cchName = cchMax;
@@ -62,6 +78,7 @@ VARIANT ApplicationSettings::getValue(const WCHAR * szKey) {
 #ifdef _DEBUG
 		std::wstring out{ L"Key not present in applicationsettings: " };
 		out += szKey;
+		out += L"\n";
 
 		OutputDebugString(out.c_str());
 #endif // _NDEBUG
@@ -150,7 +167,25 @@ const BSTR ApplicationSettings::getMultiSZ(const WCHAR * szKey) {
 }
 bool ApplicationSettings::setMultiSZ(const WCHAR * szKey, const BSTR szValue) {
 
-	return setSZ(szKey, szValue);
+	auto prev = setSZ(szKey, szValue);
+
+	if( false == prev ) {
+		try {
+			auto& rv = kv_pairs.at(szKey);
+			rv.SetMultiSZ();	
+		} catch( std::exception ) {
+#ifdef DEBUG
+			
+			std::wstring out{ L"Error adding : " };
+			out += szKey;
+			out += L"\n";
+
+			OutputDebugString(out.c_str());
+#endif // DEBUG
+		}
+	}
+
+	return prev;
 }
 
 ApplicationSettings::RegVariant::RegVariant(const WCHAR * szRegKey, const WCHAR * szKey, DWORD type) :
@@ -184,13 +219,17 @@ ApplicationSettings::RegVariant::RegVariant(const WCHAR * szRegKey, const WCHAR 
 
 		m_var.vt = VT_BSTR;
 
-		res = RegGetValue(hKey, nullptr, szKey, type,
+		res = RegGetValue(hKey, nullptr, szKey, type,			//	RegGetValue,  cb includes terminating null/nulls
 			nullptr, nullptr, &cb);
 		if( ERROR_SUCCESS != res )	return;
 
-		m_var.bstrVal = SysAllocStringLen(L"", cb);
+		cb -= sizeof(m_var.bstrVal[0]);							//	SysAllocStringByteLen allocates cb + space for terminating null
+																
+		m_var.bstrVal = SysAllocStringByteLen(nullptr, cb);	
 		if( !m_var.bstrVal )			return;
-
+#ifdef DEBUG
+		memset(m_var.bstrVal, 0x55, cb);
+#endif // DEBUG
 		res = RegGetValue(hKey, nullptr, szKey, type,
 			nullptr, m_var.bstrVal, &cb);
 
@@ -203,7 +242,7 @@ ApplicationSettings::RegVariant::RegVariant(const WCHAR * szRegKey, const WCHAR 
 ApplicationSettings::RegVariant::RegVariant(const WCHAR * szRegKey, const WCHAR * szKey, VARIANT * pvar) :
 	m_RegKey{ szRegKey }, m_key{ szKey }, m_fNeedToSave{ true } {
 
-	m_var.Copy(pvar);
+	m_var.Attach(pvar);
 }
 
 ApplicationSettings::RegVariant::RegVariant(RegVariant&& rv) {
@@ -251,7 +290,8 @@ bool ApplicationSettings::RegVariant::SaveToRegistry() {
 		break;
 
 	case VT_BSTR:
-		cb = SysStringByteLen(m_var.bstrVal);
+		cb = SysStringByteLen(m_var.bstrVal);		//	Returned value does not include terminating null
+		cb += sizeof(m_var.bstrVal[0]);				//	RegSetValueEx expects cb to include the terminating null
 		res = RegSetValueEx(hKey, m_key.c_str(), 0, m_fMultiSZ ? REG_MULTI_SZ : REG_SZ, (BYTE *) m_var.bstrVal, cb);
 		break;
 	}

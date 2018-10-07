@@ -19,6 +19,9 @@ class BrowserCommand {
 public:
 
 	BrowserCommand(ApplicationSettings * pSettings) : m_pSettings{ pSettings } {
+
+		if( !pSettings )	throw std::exception{ "nullptr" };
+
 		LoadFromRegistry();
 	}
 

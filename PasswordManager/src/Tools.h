@@ -21,7 +21,7 @@ class Tools : public ModalDialog<Tools> {
 	std::vector<tool_pair> m_tools;
 	std::vector<tool_pair> m_toolsDelta;
 	
-	bool m_fToolsChanged = true;
+	bool m_fToolsChanged = false;
 
 	bool LoadToolsFromRegistry();
 	bool SaveToolsToRegistry();

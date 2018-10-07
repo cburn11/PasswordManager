@@ -20,6 +20,8 @@ void RecentFiles::LoadRecentFilesFromRegistry() {
 
 	auto szRecentFiles = 	// Double /0 terminated string
 		m_pSettings->getMultiSZ(L"RecentFiles");
+
+	if( !szRecentFiles )	return;
 		
 	WCHAR * szOrig = szRecentFiles;
 			
@@ -36,16 +38,19 @@ void RecentFiles::SaveRecentFilesInRegistry() {
 	ULONG size = 0;
 	for_each(begin(m_vFilepaths), end(m_vFilepaths),
 		[&size](wstring const & file) {
-		size += wcslen(file.c_str()) + 1;	// +1 for null
+		size += file.length() + 1;	// +1 for null
 	});
 
 	if( size == 0 )	// empty
 		size = 1;
 
-	auto dsz = SysAllocStringLen(L"", size + 1);	//	+1 for final null
-	//	Don't call SysFreeString, ApplicationSettings now owns dsz
-	
+	auto dsz = SysAllocStringLen(nullptr, size);	//	SysAllocStringLen allocates size + 1 for the terminating null
+													//	But a subsequent call to SysStringLen or SysStringByteLen will
+													//	return size, not the allocated size to terminating null
+	//	Don't call SysFreeString, ApplicationSettings now owns dsz			
+
 	if( dsz ) {
+		memset(dsz, 0, size * sizeof(dsz[0]));
 		size = 0;
 		for_each(begin(m_vFilepaths), end(m_vFilepaths),
 			[&size, dsz](wstring const & filepath) {
