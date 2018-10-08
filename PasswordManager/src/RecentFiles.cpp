@@ -18,48 +18,12 @@ using std::end;
 
 void RecentFiles::LoadRecentFilesFromRegistry() {
 
-	auto szRecentFiles = 	// Double /0 terminated string
-		m_pSettings->getMultiSZ(L"RecentFiles");
-
-	if( !szRecentFiles )	return;
-		
-	WCHAR * szOrig = szRecentFiles;
-			
-	auto cch = wcslen(szRecentFiles);
-	while( cch > 0 ) {
-		m_vFilepaths.push_back(szRecentFiles);
-		szRecentFiles += cch + 1;
-		cch = wcslen(szRecentFiles);
-	}
+	m_vFilepaths = m_pSettings->getMultiSZAsVector(L"RecentFiles");
 }
 
 void RecentFiles::SaveRecentFilesInRegistry() {
 
-	ULONG size = 0;
-	for_each(begin(m_vFilepaths), end(m_vFilepaths),
-		[&size](wstring const & file) {
-		size += file.length() + 1;	// +1 for null
-	});
-
-	if( size == 0 )	// empty
-		size = 1;
-
-	auto dsz = SysAllocStringLen(nullptr, size);	//	SysAllocStringLen allocates size + 1 for the terminating null
-													//	But a subsequent call to SysStringLen or SysStringByteLen will
-													//	return size, not the allocated size to terminating null
-	//	Don't call SysFreeString, ApplicationSettings now owns dsz			
-
-	if( dsz ) {
-		memset(dsz, 0, size * sizeof(dsz[0]));
-		size = 0;
-		for_each(begin(m_vFilepaths), end(m_vFilepaths),
-			[&size, dsz](wstring const & filepath) {
-			size += wsprintf(dsz + size, L"%s", filepath.c_str());
-			++size;
-		});
-
-		m_pSettings->setMultiSZ(L"RecentFiles", dsz);
-	}
+	m_pSettings->setMultiSZ(L"RecentFiles", m_vFilepaths);
 }
 
 bool RecentFiles::IsFilepathAlreadyInList(const WCHAR * szFilepath) {
@@ -91,6 +55,8 @@ void RecentFiles::FileOpened(const WCHAR * szFilepath) {
 }
 
 void RecentFiles::RemoveRecentFile(UINT index) {
+
+	if( index >= m_vFilepaths.size() )	return;
 
 	m_vFilepaths.erase(begin(m_vFilepaths) + index);
 	

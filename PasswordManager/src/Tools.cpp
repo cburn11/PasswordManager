@@ -87,8 +87,6 @@ Tools::Tools(ApplicationSettings * pSettings) : m_pSettings{ pSettings } {
 	m_hInstance = GetModuleHandle(NULL);
 	m_szTemplate = MAKEINTRESOURCE(IDD_DIALOG_TOOLS);
 
-	m_tools.reserve(5);
-
 	LoadToolsFromRegistry();
 }
 
@@ -100,21 +98,22 @@ Tools::~Tools() {
 
 bool Tools::LoadToolsFromRegistry() {
 
-	const WCHAR * szSubStrings = m_pSettings->getMultiSZ(L"Tools");
+	auto vFlatTools = m_pSettings->getMultiSZAsVector(L"Tools");
 
-	if( !szSubStrings )		return false;
+	m_tools.reserve(vFlatTools.size() / 2);
 
-	for( auto cch = wcslen(szSubStrings); cch > 0; cch = wcslen(szSubStrings) ) {
-
-		wstring caption{ szSubStrings };
-		szSubStrings += cch + 1;
-
-		cch = wcslen(szSubStrings);
-		wstring target{ szSubStrings };
-		szSubStrings += cch + 1;
-
-		m_tools.push_back(tool_pair{ caption, target });
-
+	auto i_end = std::end(vFlatTools);
+	for( auto i = std::begin(vFlatTools); i != i_end; i += 2 ) {
+		
+		auto& cmd = *i;
+		auto& path = *( i + 1 );
+		
+		m_tools.emplace_back(
+			std::make_pair(
+				std::move(cmd), 
+				std::move(path)
+			)
+		);
 	}
 		
 	return true;
@@ -122,32 +121,16 @@ bool Tools::LoadToolsFromRegistry() {
 
 bool Tools::SaveToolsToRegistry() {
 	
-	ULONG size = 0;
-	for_each(begin(m_tools), end(m_tools),
-		[&size](tool_pair const & p) {
-		size += p.first.length() + 1;		// cch + null
-		size += p.second.length() + 1;		// cch + null
-	});
-	
-	auto dsz = SysAllocStringLen(nullptr, size);	//	SysAllocStringLen allocates size + 1 for the terminating null
-													//	But a subsequent call to SysStringLen or SysStringByteLen will
-													//	return size, not the allocated size to terminating null
-	//Don't call SysFreeString(dsz), dsz is now owned by the internal structure of ApplicationSettings		
-
-	if( dsz ) {
-		memset(dsz, 0, size * sizeof(dsz[0]));
-		size = 0;
-		for_each(begin(m_tools), end(m_tools),
-			[&size, dsz](tool_pair const & p) {
-			size += wsprintf(dsz + size, L"%s", p.first.c_str());
-			++size;
-			size += wsprintf(dsz + size, L"%s", p.second.c_str());
-			++size;
-		});
-
-		m_pSettings->setMultiSZ(L"Tools", dsz);
-		m_fToolsChanged = false;
+	//	Flatten tool_pairs for ApplicationSettings
+	std::vector<std::wstring> m_vFlat;
+	m_vFlat.reserve(2 * m_tools.size());
+	for( auto& [name, path] : m_tools ) {
+		m_vFlat.push_back(name);
+		m_vFlat.push_back(path);
 	}
+
+	m_pSettings->setMultiSZ(L"Tools", m_vFlat);
+	m_fToolsChanged = false;
 			
 	return true;
 }
