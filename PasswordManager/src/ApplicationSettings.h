@@ -73,9 +73,10 @@ public:
 
 	operator VARIANT() { return m_var; }
 
-	// Attach frees any memory currently held, and then makes a copy of the src structure.
-	// Which means Attach takes ownership of any memory (bstr) to whichsrcVar points 
-	void operator=(VARIANT * pvar) { m_var.Attach(pvar); m_fNeedToSave = true; }
+	// Attach frees any memory currently held (VariantClear), and then makes a copy of the src structure.
+	// Which means Attach takes ownership of any memory (bstr) to which srcVar points.
+	// However VariantClear does not free memory held as VT_UI4 | VT_BYREF.
+	void operator=(VARIANT * pvar) { auto hr = m_var.Attach(pvar); m_fNeedToSave = true; }
 
 private:
 

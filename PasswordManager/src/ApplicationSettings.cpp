@@ -257,7 +257,7 @@ std::pair<const BYTE *, size_t> ApplicationSettings::getBytes(const WCHAR * szKe
 
 bool ApplicationSettings::setBytes(const WCHAR * szKey, const BYTE * pBuffer, size_t cb) {
 
-	VARIANT varNew{ VT_BLOB };
+	VARIANT varNew{ VT_UI1 | VT_BYREF };
 	
 	varNew.pbVal = new BYTE[cb]{ 0 };
 	if( !varNew.pbVal ) throw std::exception{ "allocation error" };
@@ -265,6 +265,8 @@ bool ApplicationSettings::setBytes(const WCHAR * szKey, const BYTE * pBuffer, si
 	memcpy_s(varNew.pbVal, cb, pBuffer, cb);
 
 	auto varPrev = setValue(szKey, &varNew);
+	if( varPrev.vt == ( VT_UI1 | VT_BYREF ) )
+		delete[] varPrev.pbVal;
 
 	try {
 		auto& rv = kv_pairs.at(szKey);
@@ -361,9 +363,9 @@ ApplicationSettings::RegVariant::RegVariant(const WCHAR * szRegKey, const WCHAR 
 
 	case REG_BINARY:
 
-		m_var.vt = VT_BLOB;
+		m_var.vt = VT_UI1 | VT_BYREF;
 
-		res = RegGetValue(hKey, nullptr, szKey, type,			//	RegGetValue,  cb includes terminating null/nulls
+		res = RegGetValue(hKey, nullptr, szKey, RRF_RT_REG_BINARY,			
 			nullptr, nullptr, &cb);
 		if( ERROR_SUCCESS != res )	return;
 
@@ -438,7 +440,7 @@ bool ApplicationSettings::RegVariant::SaveToRegistry() {
 		res = RegSetValueEx(hKey, m_key.c_str(), 0, m_fMultiSZ ? REG_MULTI_SZ : REG_SZ, (BYTE *) m_var.bstrVal, cb);
 		break;
 
-	case VT_BLOB:
+	case (VT_UI1 | VT_BYREF):
 
 		res = RegSetValueEx(hKey, m_key.c_str(), 0, REG_BINARY, m_var.pbVal, m_cbBin);
 
