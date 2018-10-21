@@ -691,10 +691,14 @@ void OpenRecentFile(HWND hwnd, UINT id) {
 
 	if( index < vRecentFiles.size() && vRecentFiles.size() > 0 ) {
 
-		if( !OpenFile(hwnd, vRecentFiles[index].c_str()) ) {
+		try {
+
+			OpenFile(hwnd, vRecentFiles[index].c_str());
+
+		} catch(FILE_NOT_FOUND) {
 
 			wstring msg_txt = L"Do you want to remove the entry from the Recent File list?";
-			wstring caption = L"Error Opening File";
+			wstring caption = L"File not found error";
 			int res = MessageBox(hwnd, msg_txt.c_str(), caption.c_str(), MB_YESNO);
 			if( res == IDYES ) {
 				pUserData->pRecentFiles->RemoveRecentFile(index);
@@ -886,12 +890,8 @@ void ImportXML(HWND hwndParent) {
 		Accounts imported_accounts;
 		if( imported_accounts.Load(szImportFilename) ) {
 
-			auto accounts = imported_accounts.GetAccounts();
 			UserData * pUserData = (UserData *) GetWindowLongPtr(hwndParent, GWLP_USERDATA);
-
-			for( auto account : accounts ) {
-				pUserData->pAccounts->AddAccount(std::move(account));
-			}
+			pUserData->pAccounts->AddAccounts(std::move(imported_accounts));
 
 			UpdateDisplay(hwndParent);
 		}

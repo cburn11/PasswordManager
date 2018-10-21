@@ -177,8 +177,8 @@ void SearchDialog::ResetComboBox() {
 
 	ComboBox_ResetContent(m_hwndCombo);
 	
-	auto accounts = m_pAccounts->GetAccounts();
-	for( Account& account : accounts ) {
+	auto& accounts = m_pAccounts->GetAccounts();
+	for( auto& account : accounts ) {
 		ComboBox_AddString(m_hwndCombo, account.to_string().c_str());
 	}
 

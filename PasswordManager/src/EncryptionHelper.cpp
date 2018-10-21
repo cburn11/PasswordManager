@@ -85,8 +85,11 @@ BOOL LoadFile(const WCHAR * szFile, BYTE ** ppBuffer, DWORD * pcbBuffer) {
 
 	hIn = CreateFile(szFile, GENERIC_READ, 0, NULL, /*OPEN_ALWAYS*/OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL, NULL);
-	if( INVALID_HANDLE_VALUE == hIn || NULL == hIn )
+	if( INVALID_HANDLE_VALUE == hIn || NULL == hIn ) {
+		DWORD error = GetLastError();
+		if( error == ERROR_FILE_NOT_FOUND )	throw std::exception{ "FILE_NOT_FOUND" };
 		return FALSE;
+	}
 
 	cbFileSizeLo = GetFileSize(hIn, &cbFileSizeHigh);
 

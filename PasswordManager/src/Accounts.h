@@ -13,6 +13,8 @@
 
 #include "resource.h"
 
+struct FILE_NOT_FOUND : public std::exception { };
+
 using Filter_Type = enum {
 	Name = IDC_RADIO_NAME,
 	Url = IDC_RADIO_URL,
@@ -39,7 +41,7 @@ public:
 
 	Account(IXMLDOMNode * pnode);
 
-	Account(const Account& cp_Account) = default;
+	Account(const Account& cp_Account) = delete;
 	Account(Account&& cp_Account) = default;
 	
 	Account& operator=(const Account& cp_Account) = delete;
@@ -119,6 +121,7 @@ public:
 
 	template <typename T1>
 	const Account& AddAccount(T1&& account, int index = -1, bool fReindex = true);
+	void AddAccounts(Accounts&& accounts);
 
 	Account RemoveAccount(long index, bool fReindex = true);
 

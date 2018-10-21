@@ -272,6 +272,7 @@ bool ApplicationSettings::setBytes(const WCHAR * szKey, const BYTE * pBuffer, si
 		auto& rv = kv_pairs.at(szKey);
 		rv.setBinarySize(cb);
 	} catch( std::exception ) {
+		if( varNew.pbVal )	delete[] varNew.pbVal;
 		throw std::exception{ "Unable to add binary key" };
 	}
 

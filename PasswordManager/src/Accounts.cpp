@@ -184,7 +184,16 @@ bool Accounts::LoadFromEncrypted(const WCHAR * szFilename) {
 
 	WCHAR * szDecryptedFilename = nullptr;
 	BOOL fHashMismatch = false;
-	bool fdecrypted = DecryptToTempFile(szFilename, szPassword, &szDecryptedFilename, &fHashMismatch);
+	bool fdecrypted = false;
+	
+	try {
+
+		fdecrypted = DecryptToTempFile(szFilename, szPassword, &szDecryptedFilename, &fHashMismatch);
+
+	} catch( std::exception ) {
+		
+		throw FILE_NOT_FOUND{  };
+	}
 
 	m_password = szPassword;
 	delete[] szPassword;
@@ -214,6 +223,11 @@ bool Accounts::LoadFromEncrypted(const WCHAR * szFilename) {
 bool Accounts::LoadFromXml(const WCHAR * szFilename) {
 
 	auto res = GetFileAttributesEx(szFilename, GetFileExInfoStandard, &m_filedata);
+	if( 0 == res ) {
+		auto error = GetLastError();
+		if( ERROR_FILE_NOT_FOUND == error )	throw FILE_NOT_FOUND{};
+		return false;
+	}
 
 	HRESULT		hr;
 	CComPtr<IXMLDOMDocument> m_pDoc;
@@ -376,6 +390,7 @@ bool Accounts::SaveAccountsEncrypted(const WCHAR * szFilename) {
 
 		if( m_encrypted_filepath != szFilename ) {
 			m_encrypted_filepath = szFilename;
+			m_password = PromptForPassword();
 		}
 
 		auto ret = EncryptFileAndSave(m_filepath.c_str(), m_password.c_str(), m_encrypted_filepath.c_str());
@@ -470,6 +485,14 @@ const Account& Accounts::AddAccount(T1&& account, int index, bool fReindex) {
 	return *( m_Accounts.begin() + inserted_index );
 }
 
+void Accounts::AddAccounts(Accounts&& accounts) {
+
+	for( auto& account : accounts.m_Accounts ) {
+
+		AddAccount(std::move(account));
+	}
+}
+
 void Accounts::Reindex(int begin_index) {
 
 	auto i = m_Accounts.begin() + begin_index;
@@ -551,7 +574,7 @@ int Accounts::MoveAccount(int srcIndex, int dstIndex) {
 
 	auto account = RemoveAccount(srcIndex, false);
 
-	auto moved_account = AddAccount(std::move(account), dstIndex, false);
+	const auto& moved_account = AddAccount(std::move(account), dstIndex, false);
 
 	Reindex(min(srcIndex, dstIndex));
 

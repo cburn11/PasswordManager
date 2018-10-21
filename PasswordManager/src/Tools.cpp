@@ -238,10 +238,10 @@ void Tools::UpdateControls() {
 
 	SetFocus(g_hwndCaption);
 	
-	auto szComboEntry = GetComboText();
+	std::unique_ptr<WCHAR> szComboEntry{ GetComboText() };
 	if( !szComboEntry ) return;
 
-	if( wcscmp(L"[New Entry]", szComboEntry) == 0 ) {
+	if( wcscmp(L"[New Entry]", szComboEntry.get()) == 0 ) {
 
 		Button_SetText(g_hwndAdd, L"Add");
 		Button_Enable(g_hwndRemove, FALSE);
@@ -249,22 +249,19 @@ void Tools::UpdateControls() {
 		Edit_SetText(g_hwndCaption, L"");
 		Edit_SetText(g_hwndTarget, L"");
 
-
 	} else {
 
 		int sel = ComboBox_GetCurSel(g_hwndCombo);
 		if( sel >= m_toolsDelta.size() )	return;
 
-		auto& tp = GetToolPair(sel);
+		const auto&[caption, target] = GetToolPair(sel);
 
-		Edit_SetText(g_hwndCaption, tp.first.c_str());
-		Edit_SetText(g_hwndTarget, tp.second.c_str());
+		Edit_SetText(g_hwndCaption, caption.c_str());
+		Edit_SetText(g_hwndTarget, target.c_str());
 
 		Button_SetText(g_hwndAdd, L"Update");
 		Button_Enable(g_hwndRemove, TRUE);
 	}
-
-	delete[] szComboEntry;
 }
 
 void Tools::PopulateComboBox() {
@@ -280,19 +277,18 @@ void Tools::PopulateComboBox() {
 
 void Tools::AddButtonClick() {
 
-	auto szComboEntry = GetComboText();
+	std::unique_ptr<WCHAR> szComboEntry{ GetComboText() };
 	if( !szComboEntry ) return;
 
-	WCHAR * szCaption = GetEditText(g_hwndCaption);
+	std::unique_ptr<WCHAR> szCaption{ GetEditText(g_hwndCaption) };
 	if( !szCaption )	return;
 
-	WCHAR * szTarget = GetEditText(g_hwndTarget);
-	if( !szTarget )		return;
-	
+	std::unique_ptr<WCHAR> szTarget{ GetEditText(g_hwndTarget) };
+	if( !szTarget )		return;	
 
-	if( wcscmp(L"[New Entry]", szComboEntry) == 0 ) {
+	if( wcscmp(L"[New Entry]", szComboEntry.get()) == 0 ) {
 
-		AddTool(szCaption, szTarget);
+		AddTool(szCaption.get(), szTarget.get());
 
 		PopulateComboBox(); 
 
@@ -303,20 +299,13 @@ void Tools::AddButtonClick() {
 	} else {
 
 		int sel = ComboBox_GetCurSel(g_hwndCombo);
-
-		auto& tp = GetToolPair(sel);
-
-		tp.first = szCaption;
-
-		tp.second = szTarget;
+		
+		auto&[caption, target] = GetToolPair(sel);
+		caption = szCaption.get();
+		target = szTarget.get();
 
 		m_fToolsChanged = true;
-
 	}
-
-	delete[] szCaption;
-	delete[] szTarget;
-	delete[] szComboEntry;
 }
 
 void Tools::AddTool(std::wstring caption, std::wstring target) {
@@ -359,7 +348,6 @@ void Tools::RemoveButtonClick() {
 	ComboBox_SetCurSel(g_hwndCombo, sel - 1);
 
 	UpdateControls();
-
 }
 
 vector<wstring> Tools::GetCaptions() {
