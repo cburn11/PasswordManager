@@ -1,4 +1,5 @@
 #include <thread>
+#include <memory>
 
 #include "checkhaveibeenpwned_mainwindow.h"
 #include "request.h"
@@ -130,6 +131,7 @@ void CHIBP_MainWindow::CheckAccount() {
 
 		// Pointer freed by main window
 		auto p_strResult = new std::wstring{ L"Search for " + strAccount + L" returned " };
+
 		if( p_strResult ) {
 			*p_strResult += ParseJSONResponse(json);
 			auto res = PostMessage(hwnd, CHIBP_ADDRESULT, 0, reinterpret_cast<LPARAM>( p_strResult ));
