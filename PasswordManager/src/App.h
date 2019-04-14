@@ -13,7 +13,7 @@ void LaunchBrowser(HWND hwnd);
 
 void LaunchAgnosticBrowserClipboard(HWND hwnd);
 
-void LaunchClipboardMonitor(HWND hwnd);
+void LaunchClipboardMonitor(HWND hwnd, bool fIncludeURL);
 
 void UpdateMenuItems(HWND hwnd);
 

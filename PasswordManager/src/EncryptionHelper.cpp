@@ -11,6 +11,8 @@
 #include <iomanip>
 #include <algorithm>
 
+#include "EncryptionHelper.h"
+
 #pragma comment(lib, "bcrypt.lib")
 
 BOOL hash(WCHAR * szAlg, BYTE * pIn, DWORD cbIn, BYTE ** ppHash, DWORD * pcbHash) {
@@ -170,7 +172,7 @@ BOOL Decrypt(const WCHAR * szSecret, BYTE * pCypher, DWORD cbCypher, BYTE ** ppP
 	return TRUE;
 }
 
-BOOL SaveFile(WCHAR * szFile, BYTE * pBuffer, DWORD cbBuffer) {
+BOOL SaveFile(const WCHAR * szFile, BYTE * pBuffer, DWORD cbBuffer) {
 
 	HANDLE		hOut;
 	DWORD		cbWritten;
@@ -186,7 +188,7 @@ BOOL SaveFile(WCHAR * szFile, BYTE * pBuffer, DWORD cbBuffer) {
 
 extern WCHAR * g_szTempFilePath;
 
-bool DecryptToTempFile(const WCHAR * szFilename, const WCHAR * szPassword, WCHAR ** pszDecryptedFilename, BOOL * p_fHashMismatch) {
+bool DecryptToTempFile(const WCHAR * szFilename, const WCHAR * szPassword, const WCHAR ** pszDecryptedFilename, BOOL * p_fHashMismatch) {
 
 	bool ret = false;
 	bool fHashMismatch = false;
@@ -212,6 +214,20 @@ bool DecryptToTempFile(const WCHAR * szFilename, const WCHAR * szPassword, WCHAR
 					if( GetTempFileName(g_szTempFilePath, L"PWM", 0, szTempfilename) ) {
 
 						if( SaveFile(szTempfilename, pPlain, cbPlain) ) {
+							*pszDecryptedFilename = szTempfilename;
+							ret = true;
+						}
+
+					} else {
+
+						std::wstring rnd_filepath{ g_szTempFilePath };
+
+						rnd_filepath += L"\\";
+
+						rnd_filepath += GenerateRandomString(8);
+
+						if( SaveFile(rnd_filepath.c_str(), pPlain, cbPlain) ) {
+							wcscpy_s(szTempfilename, MAX_PATH, rnd_filepath.c_str());
 							*pszDecryptedFilename = szTempfilename;
 							ret = true;
 						}

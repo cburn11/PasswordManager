@@ -236,7 +236,12 @@ void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
 
 		case ID_ACC_COPY:
 		case ID_ACTIONS_COPY:
-			LaunchClipboardMonitor(hwnd);
+			LaunchClipboardMonitor(hwnd, false);
+			break;
+
+		case ID_ACC_COPY_URL:
+		case ID_ACTIONS_COPY_URL:
+			LaunchClipboardMonitor(hwnd, true);
 			break;
 
 		case ID_ACC_EXPORTXML:

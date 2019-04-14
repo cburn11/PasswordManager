@@ -106,12 +106,18 @@ BOOL SearchDialog::Cls_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam) {
 	UserData * pUserData = (UserData *) GetWindowLongPtr(m_hwndParent, GWLP_USERDATA);
 	
 	m_pAccounts = pUserData->pAccounts;
+	if( !m_pAccounts ) {
 
-	ResetComboBox();
+		EndDialog(hwnd, -1);
 
-	Button_SetCheck(GetDlgItem(hwnd, IDC_RADIO_NAME), TRUE);
+	} else {
 
-	SetFocus(m_hwndCombo);
+		ResetComboBox();
+
+		Button_SetCheck(GetDlgItem(hwnd, IDC_RADIO_NAME), TRUE);
+
+		SetFocus(m_hwndCombo);
+	}
 
 	return FALSE;
 }

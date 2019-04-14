@@ -182,7 +182,7 @@ bool Accounts::LoadFromEncrypted(const WCHAR * szFilename) {
 	
 	if( !szPassword ) return false;
 
-	WCHAR * szDecryptedFilename = nullptr;
+	const WCHAR * szDecryptedFilename = nullptr;
 	BOOL fHashMismatch = false;
 	bool fdecrypted = false;
 	

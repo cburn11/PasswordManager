@@ -209,4 +209,25 @@ namespace ClipboardMonitor {
 		return FALSE;
 
 	}
+
+	INT_PTR CALLBACK UrlDlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+
+		if( WM_INITDIALOG == message ) {
+
+			auto super_return = MainDlgProc(hwnd, message, wParam, lParam);
+
+			if( g_pAccount ) {
+				
+				if( g_pAccount->url.size() > 0 )		ListBox_InsertString(g_hwndList, 0, g_pAccount->url.c_str());
+
+				ListBox_SetCurSel(g_hwndList, 0);
+
+				PutStringOnClipboard(g_pAccount->url.c_str());
+			}
+
+			return super_return;
+		}
+
+		return MainDlgProc(hwnd, message, wParam, lParam);
+	}
 }

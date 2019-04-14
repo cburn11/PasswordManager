@@ -6,4 +6,5 @@ namespace ClipboardMonitor {
 
 	INT_PTR CALLBACK MainDlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
+	INT_PTR CALLBACK UrlDlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 }

@@ -211,7 +211,7 @@ void LaunchBrowser(HWND hwnd) {
 			szCmdLine, NULL, SW_SHOW);
 		if( 32 < error ) {
 			//CopyToClipboard(hwnd);
-			LaunchClipboardMonitor(hwnd);
+			LaunchClipboardMonitor(hwnd, false);
 		}
 		delete[] szCmdLine;
 	}
@@ -245,12 +245,15 @@ void LaunchBrowser(HWND hwnd) {
 //	hr = pInputElement->focus();
 //}
 
-void ShowClipboardMonitorDialog(HWND hwndParent, UserData * pUserData, const Account * paccount) {
+void ShowClipboardMonitorDialog(HWND hwndParent, UserData * pUserData, const Account * paccount, bool fIncludeURL) {
 
 	HINSTANCE hInstance = (HINSTANCE) GetModuleHandle(nullptr);
 
-	auto hwnd = CreateDialogParam(hInstance, MAKEINTRESOURCE(IDD_DIALOG_CB), hwndParent,
-		ClipboardMonitor::MainDlgProc, (LPARAM) paccount);
+	auto hwnd = CreateDialogParam(hInstance, 
+		MAKEINTRESOURCE(IDD_DIALOG_CB), 
+		hwndParent,
+		fIncludeURL ? ClipboardMonitor::UrlDlgProc : ClipboardMonitor::MainDlgProc, 
+		(LPARAM) paccount);
 
 	pUserData->hwndClipboardMonitor = hwnd;
 
@@ -288,7 +291,7 @@ void ShowClipboardMonitorDialog(HWND hwndParent, UserData * pUserData, const Acc
 //	return pBrowser;
 //}
 
-void LaunchClipboardMonitor(HWND hwnd) {
+void LaunchClipboardMonitor(HWND hwnd, bool fIncludeURL) {
 
 	UserData * pUserData = (UserData *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
 	if( !pUserData )
@@ -302,7 +305,7 @@ void LaunchClipboardMonitor(HWND hwnd) {
 	const Account * paccount;
 	if( GetSelectedAccount(hwnd, &paccount) ) {
 
-		ShowClipboardMonitorDialog(hwnd, pUserData, paccount);
+		ShowClipboardMonitorDialog(hwnd, pUserData, paccount, fIncludeURL);
 	}
 }
 
@@ -344,7 +347,7 @@ void LaunchAgnosticBrowserClipboard(HWND hwnd) {
 			nullptr, nullptr, SW_SHOW);
 		if( ret > 32 ) {
 			//CopyToClipboard(hwnd);
-			LaunchClipboardMonitor(hwnd);
+			LaunchClipboardMonitor(hwnd, false);
 		}
 
 		
@@ -364,6 +367,7 @@ void UpdateMenuItems(HWND hwnd) {
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_LAUNCHBROWSER, MF_ENABLED);
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_LAUNCHBROWSERCB, MF_ENABLED);
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_COPY, MF_ENABLED);
+		ret = EnableMenuItem(hMenu, ID_ACTIONS_COPY_URL, MF_ENABLED);
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_EXPORTXML, MF_ENABLED);
 
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_EDITENTRY, MF_ENABLED);
@@ -379,6 +383,7 @@ void UpdateMenuItems(HWND hwnd) {
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_LAUNCHBROWSER, MF_GRAYED);
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_LAUNCHBROWSERCB, MF_GRAYED);
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_COPY, MF_GRAYED);
+		ret = EnableMenuItem(hMenu, ID_ACTIONS_COPY_URL, MF_GRAYED);
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_EXPORTXML, MF_GRAYED);
 
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_EDITENTRY, MF_GRAYED);

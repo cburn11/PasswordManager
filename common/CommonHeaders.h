@@ -21,6 +21,12 @@
 		(base); \
 		return (SetDlgMsgResult(hwnd, message, ret)); }
 
+#define HANDLE_MSG_SUBCLASS(hwnd, message, fn, wndproc_parent) \
+	case (message): { \
+		auto ret = HANDLE_##message((hwnd), (wParam), (lParam), (fn)); \
+		CallWindowProc(wndproc_parent, (hwnd), message, (wParam), (lParam)); \
+		return ret; }
+
 //	Uncommented on 2.6.18 for ClipboardToWord CustomDialog.cpp
 /* LRESULT Cls_OnNotify(HWND hwnd, int id, NMHDR * pNMHDR) */
 #define HANDLE_WM_NOTIFY(hwnd, wParam, lParam, fn) \
