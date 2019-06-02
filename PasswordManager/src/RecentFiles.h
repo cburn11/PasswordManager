@@ -11,15 +11,20 @@
 class RecentFiles {
 
 	std::vector<std::wstring> m_vFilepaths;
-
 	bool m_fChanged = false;
+	ApplicationSettings * m_pSettings;
+	HMENU m_hRecentFiles = NULL;
 
 	void LoadRecentFilesFromRegistry();
 	void SaveRecentFilesInRegistry();
 
 	bool IsFilepathAlreadyInList(const wchar_t * szFilepath);
 
-	ApplicationSettings * m_pSettings;
+	HMENU CreateRecentFilesMenu();
+	void DestroyRecentFilesMenu();
+	void UpdateRecentFilesMenu();
+
+	void ClearMenu(HMENU hMenu);
 
 public:
 
@@ -30,11 +35,16 @@ public:
 		m_vFilepaths.reserve(5);
 
 		LoadRecentFilesFromRegistry();
+
+		m_hRecentFiles = CreateRecentFilesMenu();
+		UpdateRecentFilesMenu();
 	}
 
 	~RecentFiles() {
 		if( m_fChanged )
 			SaveRecentFilesInRegistry();
+
+		DestroyRecentFilesMenu();
 	}
 
 	void FileOpened(const wchar_t * szFilepath);
@@ -43,5 +53,7 @@ public:
 
 	void RemoveRecentFile(UINT index);
 
-	void ClearRecentFiles() { m_vFilepaths.clear(); m_fChanged = true; }
+	void ClearRecentFiles() { m_vFilepaths.clear(); m_fChanged = true; UpdateRecentFilesMenu(); }
+
+	HMENU GetRecentFilesMenu() { return m_hRecentFiles; }
 };

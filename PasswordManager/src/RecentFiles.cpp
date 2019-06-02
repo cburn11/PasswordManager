@@ -50,6 +50,7 @@ void RecentFiles::FileOpened(const WCHAR * szFilepath) {
 			RemoveRecentFile(0);
 		}
 
+		UpdateRecentFilesMenu();
 	}
 
 }
@@ -61,5 +62,67 @@ void RecentFiles::RemoveRecentFile(UINT index) {
 	m_vFilepaths.erase(begin(m_vFilepaths) + index);
 	
 	this->m_fChanged = true;
+
+	UpdateRecentFilesMenu();
+}
+
+HMENU RecentFiles::CreateRecentFilesMenu() {
+
+	auto hRecentFiles = CreatePopupMenu();
+	return hRecentFiles;
+}
+
+void RecentFiles::DestroyRecentFilesMenu() {
+
+	if( m_hRecentFiles )	DestroyMenu(m_hRecentFiles);
+}
+
+void RecentFiles::UpdateRecentFilesMenu() {
+
+	HMENU hRecentFiles = GetRecentFilesMenu();
+	ClearMenu(hRecentFiles);
+
+	const auto& vRecentFiles = GetRecentFiles();
+	BOOL ret;
+	if( vRecentFiles.size() > 0 ) {
+		ULONG menuID = RECENT_FILE_MENU_ID;
+		
+
+		MENUITEMINFO mii{ sizeof(MENUITEMINFO), 0 };
+		mii.fMask = MIIM_STRING | MIIM_ID;
+
+		int index{ 0 };
+		for_each(begin(vRecentFiles), end(vRecentFiles),
+			[hRecentFiles, &menuID, &ret, &index, &mii](wstring const & filepath) {
+
+			++index;
+			wstring caption = L"&" + std::to_wstring(index) + L"  " + filepath.c_str();
+			mii.dwTypeData = (LPWSTR) caption.c_str();
+
+			mii.wID = menuID++;
+			mii.cch = wcslen(caption.c_str());
+
+			ret = InsertMenuItem(hRecentFiles, index - 1, TRUE, &mii);
+		});
+
+		wstring caption{ L"&Clear" };
+		mii.wID = RECENT_FILE_MENU_CLEAR;
+		mii.dwTypeData = (LPWSTR) caption.c_str();
+		mii.cch = wcslen(caption.c_str());
+
+		ret = InsertMenuItem(hRecentFiles, index, TRUE, &mii);
+	}
+}
+
+void RecentFiles::ClearMenu(HMENU hMenu) {
+
+	if( !hMenu )	return;
+
+	auto count = GetMenuItemCount(hMenu);
+	BOOL ret;
+	for( ; count > 0; --count ) {
+
+		ret = RemoveMenu(hMenu, count - 1, MF_BYPOSITION);
+	}
 
 }

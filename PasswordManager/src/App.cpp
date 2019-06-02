@@ -41,6 +41,9 @@ bool GetSelectedAccount(HWND hwndListBox, const Account ** ppAcount);
 
 void UpdateDisplay(HWND hwnd) {
 
+	const Account * pAccount = nullptr;
+	GetSelectedAccount(hwnd, &pAccount);
+
 	ListBox_ResetContent(hwnd);
 
 	UserData * pUserData = (UserData *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
@@ -56,6 +59,11 @@ void UpdateDisplay(HWND hwnd) {
 
 	for_each(begin(accounts), end(accounts), DisplayAccount);
 
+	if( pAccount ) {
+
+		auto sel = pAccount->index;
+		ListBox_SetCurSel(hwnd, sel);
+	}
 }
 
 void ExitApplication(HWND hwnd) {
@@ -161,7 +169,7 @@ bool OpenFile(HWND hwndParent, const WCHAR * szFilepath) {
 		UpdateDisplay(hwndParent);
 		SetWindowText(hwndParent, szFilename);
 		pUserData->pRecentFiles->FileOpened(szFilename);
-		ResetRecentFilesMenu(hwndParent);
+		//ResetRecentFilesMenu(hwndParent);
 
 
 		// Create timer
@@ -433,6 +441,9 @@ void UpdateMenuItems(HWND hwnd) {
 bool GetSelectedAccount(HWND hwndListBox, const Account ** ppAccount) {
 	
 	UserData * pUserData = (UserData *) GetWindowLongPtr(hwndListBox, GWLP_USERDATA);
+
+	if( !pUserData->pAccounts )	return false;
+
 	const std::vector<Account>& accounts = pUserData->pAccounts->GetAccounts();
 
 	long cursel = ListBox_GetCurSel(hwndListBox);
@@ -574,7 +585,6 @@ void SaveFile(HWND hwndParent) {
 			auto szFilepath = pUserData->pAccounts->GetFilepath().c_str();
 			SetWindowText(hwndParent, szFilepath);
 			pUserData->pRecentFiles->FileOpened(szFilepath);
-			ResetRecentFilesMenu(hwndParent);
 		}
 
 	}
@@ -595,7 +605,6 @@ void SaveFileEncrypted(HWND hwndParent) {
 				pUserData->pRecentFiles->FileOpened(szFilename);
 
 				UpdateMenuItems(hwndParent);
-				ResetRecentFilesMenu(hwndParent);
 
 			} else {
 				MessageBox(hwndParent, L"Error saving encrypted file.", L"Password Manager", MB_ICONERROR);
@@ -623,15 +632,15 @@ void SaveFileAs(HWND hwndParent) {
 		delete[] szFilename;
 
 		UpdateMenuItems(hwndParent);
-		ResetRecentFilesMenu(hwndParent);
 	}
-
-	
 }
 
 void CreateRecentFilesMenu(HWND hwnd) {
+
+	UserData * pUserData = (UserData *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
 	HMENU hFileMenu = GetSubMenu(GetMenu(hwnd), 0);
-	HMENU hRecentFiles = CreatePopupMenu();
+	HMENU hRecentFiles = pUserData->pRecentFiles->GetRecentFilesMenu();
 
 	MENUITEMINFO mii{ sizeof(MENUITEMINFO), 0 };
 	mii.fMask = MIIM_STRING | MIIM_SUBMENU;
@@ -639,8 +648,6 @@ void CreateRecentFilesMenu(HWND hwnd) {
 	mii.cch = wcslen(mii.dwTypeData);
 	mii.hSubMenu = hRecentFiles;
 	BOOL ret = InsertMenuItem(hFileMenu, 6, true, &mii);
-
-	UpdateRecentFilesMenu(hwnd);
 }
 
 void ResetRecentFilesMenu(HWND hwnd) {
@@ -648,43 +655,6 @@ void ResetRecentFilesMenu(HWND hwnd) {
 	DeleteMenu(hFileMenu, 6, MF_BYPOSITION);
 
 	CreateRecentFilesMenu(hwnd);
-}
-
-void UpdateRecentFilesMenu(HWND hwnd) {
-
-	UserData * pUserData = (UserData *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
-
-	auto vRecentFiles = pUserData->pRecentFiles->GetRecentFiles();
-	BOOL ret;
-	if( vRecentFiles.size() > 0 ) {
-		ULONG menuID = RECENT_FILE_MENU_ID;
-		HMENU hFileMenu = GetSubMenu(GetMenu(hwnd), 0);
-		HMENU hRecentFiles = GetSubMenu(hFileMenu, 6);
-		
-		MENUITEMINFO mii{ sizeof(MENUITEMINFO), 0 };
-		mii.fMask = MIIM_STRING | MIIM_ID;
-
-		int index{ 0 };
-		for_each(begin(vRecentFiles), end(vRecentFiles),
-			[hRecentFiles, &menuID, &ret, &index, &mii](wstring const & filepath) {
-
-			++index;
-			wstring caption = L"&" + to_wstring(index) + L"  " + filepath.c_str();
-			mii.dwTypeData = (LPWSTR) caption.c_str();
-
-			mii.wID = menuID++;
-			mii.cch = wcslen(caption.c_str());
-
-			ret = InsertMenuItem(hRecentFiles, index - 1, TRUE, &mii);
-		});		
-
-		wstring caption{ L"&Clear" };
-		mii.wID = RECENT_FILE_MENU_CLEAR;
-		mii.dwTypeData = (LPWSTR) caption.c_str();
-		mii.cch = wcslen(caption.c_str());
-
-		ret = InsertMenuItem(hRecentFiles, index, TRUE, &mii);
-	}
 }
 
 void OpenRecentFile(HWND hwnd, UINT id) {
@@ -707,7 +677,6 @@ void OpenRecentFile(HWND hwnd, UINT id) {
 			int res = MessageBox(hwnd, msg_txt.c_str(), caption.c_str(), MB_YESNO);
 			if( res == IDYES ) {
 				pUserData->pRecentFiles->RemoveRecentFile(index);
-				ResetRecentFilesMenu(hwnd);
 			}
 
 		}
@@ -719,8 +688,6 @@ void ClearRecentFileMenu(HWND hwnd) {
 	UserData * pUserData = (UserData *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
 
 	pUserData->pRecentFiles->ClearRecentFiles();
-
-	ResetRecentFilesMenu(hwnd);
 }
 
 wstring SanitizeCommandLine(const WCHAR * szCmdLine) {

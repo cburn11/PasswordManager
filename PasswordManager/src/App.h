@@ -37,8 +37,6 @@ void CreateRecentFilesMenu(HWND hwnd);
 
 void ResetRecentFilesMenu(HWND hwnd);
 
-void UpdateRecentFilesMenu(HWND hwnd);
-
 void OpenRecentFile(HWND hwnd, UINT id);
 
 void ClearRecentFileMenu(HWND hwnd);
