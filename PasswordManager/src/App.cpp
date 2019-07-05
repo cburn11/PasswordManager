@@ -12,6 +12,8 @@
 #include <regex>
 #include <memory>
 
+#include "Helper.h"
+
 #include "Accounts.h"
 #include "AccountEditor.h"
 #include "ClipboardMonitor.h"
@@ -351,13 +353,22 @@ void LaunchAgnosticBrowserClipboard(HWND hwnd) {
 			return;
 		}
 
-		auto ret = (int) ShellExecute(nullptr, L"open", paccount->url.c_str(),
-			nullptr, nullptr, SW_SHOW);
+		/*auto ret = (int) ShellExecute(nullptr, L"open", paccount->url.c_str(),
+			nullptr, nullptr, SW_SHOW);*/
+
+		std::wstring exec = pUserData->pBrowserCommand->GetDefaultBrowserPath();
+
+		std::wstring params;
+		params += pUserData->pBrowserCommand->GetDefaultParameters();
+		params += L" ";
+		params += paccount->url.c_str();
+
+		auto ret = (int) ShellExecute(nullptr, L"open", exec.c_str(),
+			params.c_str(), nullptr, SW_SHOW);
 		if( ret > 32 ) {
 			//CopyToClipboard(hwnd);
 			LaunchClipboardMonitor(hwnd, false);
 		}
-
 		
 	}
 
@@ -688,25 +699,6 @@ void ClearRecentFileMenu(HWND hwnd) {
 	UserData * pUserData = (UserData *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
 
 	pUserData->pRecentFiles->ClearRecentFiles();
-}
-
-wstring SanitizeCommandLine(const WCHAR * szCmdLine) {
-
-	wstring cmdline{ szCmdLine };
-
-	using std::wregex;
-	using std::wsmatch;
-	using std::regex_search;
-
-	wregex	RegExp{ LR"(([A-Z]|[a-z]|:|\\|\.|\s|\d|-)+)" };
-	wsmatch	match;
-
-	auto res = regex_search(cmdline, match, RegExp);
-	if( res )	
-		return wstring{ match[0].first, match[0].second };
-	else
-		return L"";
-
 }
 
 void ProcessCommandLine(HWND hwnd, const WCHAR * szCmdLine) {

@@ -4,6 +4,7 @@
 #include <string>
 
 #include "CommonHeaders.h"
+#include "Helper.h"
 
 #include "resource.h"
 #include "BrowserCommandDialog.h"
@@ -26,6 +27,34 @@ void BrowserCommand::SaveToRegistry() {
 
 	CComBSTR parameters{ m_parameters.c_str() };
 	m_pSettings->setSZ(L"Parameters", parameters);
+
+	std::wstring filename = GetFilenameFromPath(m_defaultbrowserpath);
+	std::wstring param_name = filename + L"_params";
+	CComBSTR browser_default_param{ m_defaultparameters.c_str() };
+	m_pSettings->setSZ(param_name.c_str(), browser_default_param);
+}
+
+std::wstring BrowserCommand::GetDefaultBrowserFromRegistry() {
+
+	auto szkeyUserChoice = L"Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\https\\UserChoice";
+	
+	// Get default browser ProgId
+	std::wstring ProgId = GetRegSZValue(HKEY_CURRENT_USER, szkeyUserChoice, L"ProgID");
+
+	// Get Open command form default browser ProgId
+	const std::wstring browser_open_command_key = L"Software\\Classes\\" + ProgId + L"\\shell\\open\\command";
+	std::wstring unsanitized_default_browser = GetRegSZValue(HKEY_CURRENT_USER, browser_open_command_key.c_str());
+	std::wstring default_browser = SanitizeCommandLine(unsanitized_default_browser.c_str());
+
+	return default_browser;
+}
+
+void BrowserCommand::LoadDefaultBrowserParametersFromRegistry(const std::wstring& default_browser_path) {
+
+	std::wstring filename = GetFilenameFromPath(default_browser_path);
+
+	std::wstring param_name = filename + L"_params";
+	m_defaultparameters = m_pSettings->getSZ(param_name.c_str());
 }
 
 namespace BrowserCommandDialog {
@@ -67,6 +96,7 @@ namespace BrowserCommandDialog {
 
 		HWND hwndPath = GetDlgItem(hwnd, IDC_EDIT_BROWSER_PATH);
 		HWND hwndParams = GetDlgItem(hwnd, IDC_EDIT_PARAMETERS);
+		HWND hwndDefaultParams = GetDlgItem(hwnd, IDC_EDIT_DEFAULT_PARAMETERS);
 
 		switch( id ) {
 
@@ -95,6 +125,12 @@ namespace BrowserCommandDialog {
 			std::wstring params{ textbuffer };
 			pBrowserCommand->SetParameters(params);
 
+			memset(textbuffer, 0, 1024);
+			
+			Edit_GetText(hwndDefaultParams, textbuffer, 1024);
+			std::wstring default_params{ textbuffer };
+			pBrowserCommand->SetDefaultParameters(default_params);
+
 			// Fall through
 
 		} case IDCANCEL:
@@ -122,9 +158,13 @@ namespace BrowserCommandDialog {
 
 		HWND hwndPath = GetDlgItem(hwnd, IDC_EDIT_BROWSER_PATH);
 		HWND hwndParams = GetDlgItem(hwnd, IDC_EDIT_PARAMETERS);
+		HWND hwndDefaultPath = GetDlgItem(hwnd, IDC_EDIT_DEFAULT_BROWSERPATH);
+		HWND hwndDefaultParams = GetDlgItem(hwnd, IDC_EDIT_DEFAULT_PARAMETERS);
 
 		Edit_SetText(hwndPath, pBrowserCommand->GetBrowserPath().c_str());
 		Edit_SetText(hwndParams, pBrowserCommand->GetParameters().c_str());
+		Edit_SetText(hwndDefaultPath, pBrowserCommand->GetDefaultBrowserPath().c_str());
+		Edit_SetText(hwndDefaultParams, pBrowserCommand->GetDefaultParameters().c_str());
 
 		Button_Enable(GetDlgItem(hwnd, IDOK), FALSE);
 
