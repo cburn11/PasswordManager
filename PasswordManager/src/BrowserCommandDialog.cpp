@@ -141,6 +141,7 @@ namespace BrowserCommandDialog {
 
 		case IDC_EDIT_BROWSER_PATH:
 		case IDC_EDIT_PARAMETERS:
+		case IDC_EDIT_DEFAULT_PARAMETERS:
 
 			if( codeNotify == EN_CHANGE )
 				Button_Enable(GetDlgItem(hwnd, IDOK), TRUE);
