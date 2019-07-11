@@ -42,8 +42,8 @@ std::wstring BrowserCommand::GetDefaultBrowserFromRegistry() {
 	std::wstring ProgId = GetRegSZValue(HKEY_CURRENT_USER, szkeyUserChoice, L"ProgID");
 
 	// Get Open command form default browser ProgId
-	const std::wstring browser_open_command_key = L"Software\\Classes\\" + ProgId + L"\\shell\\open\\command";
-	std::wstring unsanitized_default_browser = GetRegSZValue(HKEY_CURRENT_USER, browser_open_command_key.c_str());
+	const std::wstring browser_open_command_key = ProgId + L"\\shell\\open\\command";
+	std::wstring unsanitized_default_browser = GetRegSZValue(HKEY_CLASSES_ROOT, browser_open_command_key.c_str());
 	std::wstring default_browser = SanitizeCommandLine(unsanitized_default_browser.c_str());
 
 	return default_browser;
@@ -54,7 +54,8 @@ void BrowserCommand::LoadDefaultBrowserParametersFromRegistry(const std::wstring
 	std::wstring filename = GetFilenameFromPath(default_browser_path);
 
 	std::wstring param_name = filename + L"_params";
-	m_defaultparameters = m_pSettings->getSZ(param_name.c_str());
+	auto param = m_pSettings->getSZ(param_name.c_str());
+	if( param ) m_defaultparameters = param;
 }
 
 namespace BrowserCommandDialog {
