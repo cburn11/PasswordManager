@@ -62,3 +62,12 @@ std::wstring GetFilenameFromPath(const std::wstring& path) {
 
 	return path.substr(offset + 1, path.size() - offset);
 }
+
+std::wstring GetParentFromFilepath(const std::wstring& path) {
+
+	auto offset = path.find_last_of(L'\\');
+
+	if( offset == std::wstring::npos )	return L"";
+
+	return path.substr(0, offset);
+}

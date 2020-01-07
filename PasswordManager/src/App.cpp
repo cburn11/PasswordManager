@@ -821,8 +821,11 @@ void LaunchTool(HWND hwndParent, int id) {
 
 	const wstring& target = pUserData->pTools->GetTarget(index);
 
+	wstring wd = GetParentFromFilepath(target);
+	const WCHAR * pwd = wd.size() ? wd.c_str() : nullptr;
+
 	auto ret = (int) ShellExecute(nullptr, L"open", target.c_str(),
-		nullptr, nullptr, SW_SHOW);
+		nullptr, pwd, SW_SHOW);
 
 }
 
