@@ -204,6 +204,9 @@ void SearchDialog::Filter(const WCHAR * szFilter) {
 
 	m_filteredAccounts = m_pAccounts->Filter(szFilter, m_type);
 
+	//	This may be a useless test,  m_pAccounts->Filter returns a pointer 
+	//	to an object that is allocated as part of the construction of the
+	//	Accounts object. It will never return null.
 	if( m_filteredAccounts ) {
 
 		ComboBox_ResetContent(m_hwndCombo);
@@ -237,6 +240,10 @@ void SearchDialog::Filter(const WCHAR * szFilter) {
 
 		ComboBox_ShowDropdown(m_hwndCombo, TRUE);
 
+		if( m_filteredAccounts->size() == 1 ) {
+			ComboBox_SetCurSel(m_hwndCombo, 0);
+		} 
+		
 		// Preserve search string after showing drop down
 		ComboBox_SetText(m_hwndCombo, m_filter.c_str());
 		ComboBox_SetEditSel(m_hwndCombo, m_filter.length(), m_filter.length());
