@@ -57,13 +57,12 @@ namespace SearchDialogFunctions {
 		HWND hwndCombo = GetDlgItem(hwnd, IDC_COMBO_ACCOUNTS);
 
 		int cchFilter = ComboBox_GetTextLength(hwndCombo);
-		WCHAR * szFilter = new WCHAR[cchFilter + 1]{ 0 };
-
+		auto szFilter = std::make_unique<WCHAR[]>(cchFilter + 1);
 		if( szFilter ) {
 
-			ComboBox_GetText(hwndCombo, szFilter, cchFilter + 1);
-			SendMessage(hwnd, FM_FILTER, 0, (LPARAM) szFilter);
-			delete[] szFilter;
+			ComboBox_GetText(hwndCombo, szFilter.get(), cchFilter + 1);
+			SendMessage(hwnd, FM_FILTER, 0, (LPARAM) szFilter.get());
+
 		}
 	}
 }
