@@ -2,6 +2,7 @@
 #include <windowsx.h>
 
 #include <string>
+#include <memory>
 
 #include "CommonHeaders.h"
 
@@ -127,9 +128,10 @@ namespace AccountEditor {
 	}
 
 	inline void CopyEditValueIntoAccount(HWND hwnd, wstring& str) {
-		WCHAR textbuffer[1024]{ 0 };
-		Edit_GetText(hwnd, textbuffer, 1024);
-		str = textbuffer;
+		auto cch = Edit_GetTextLength(hwnd);
+		auto textbuffer = std::make_unique<WCHAR[]>(cch + 1);
+		Edit_GetText(hwnd, textbuffer.get(), cch+1);
+		str = textbuffer.get();
 	}
 
 	void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
