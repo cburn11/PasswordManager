@@ -79,14 +79,14 @@ namespace AccountEditor {
 		
 		if( paccount ) {
 
-			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_ID), paccount->id.c_str());
-			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_NAME), paccount->name.c_str());
-			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_URL), paccount->url.c_str());
-			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_USERNAME), paccount->username.c_str());
-			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_PASSWORD2), paccount->password.c_str());
-			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_DESCRIPTION), paccount->description.c_str());
-			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_USERNAMEFIELD), paccount->usernamefield.c_str());
-			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_PASSWORDFIELD), paccount->passwordfield.c_str());
+			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_ID), paccount->getString(Account::Field::ID).c_str());
+			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_NAME), paccount->getString(Account::Field::NAME).c_str());
+			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_URL), paccount->getString(Account::Field::URL).c_str());
+			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_USERNAME), paccount->getString(Account::Field::USERNAME).c_str());
+			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_PASSWORD2), paccount->getString(Account::Field::PASSWORD).c_str());
+			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_DESCRIPTION), paccount->getString(Account::Field::DESCRIPTION).c_str());
+			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_USERNAMEFIELD), paccount->getString(Account::Field::USERNAMEFIELD).c_str());
+			Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_PASSWORDFIELD), paccount->getString(Account::Field::PASSWORDFIELD).c_str());
 
 		} else {
 			//	Added 1.1.18 to auto populate the ID field for NEW accounts
@@ -134,25 +134,33 @@ namespace AccountEditor {
 		str = textbuffer.get();
 	}
 
+	inline std::wstring MakeEditValueIntoString(HWND hwnd) {
+		auto cch = Edit_GetTextLength(hwnd);
+		auto textbuffer = std::make_unique<WCHAR[]>(cch + 1);
+		Edit_GetText(hwnd, textbuffer.get(), cch + 1);
+		return std::wstring{ textbuffer.get() };
+	}
+
 	void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
 
 		Account * paccount = nullptr;		
 
 		switch( id ) {
 
-		case IDOK:
+		case IDOK: {
 
 			paccount = ( Account * ) new Account;
-			
-			CopyEditValueIntoAccount(GetDlgItem(hwnd, IDC_EDIT_ID), paccount->id);
-			CopyEditValueIntoAccount(GetDlgItem(hwnd, IDC_EDIT_NAME), paccount->name);
-			CopyEditValueIntoAccount(GetDlgItem(hwnd, IDC_EDIT_URL), paccount->url);
-			CopyEditValueIntoAccount(GetDlgItem(hwnd, IDC_EDIT_USERNAME), paccount->username);
-			CopyEditValueIntoAccount(GetDlgItem(hwnd, IDC_EDIT_PASSWORD2), paccount->password);
-			CopyEditValueIntoAccount(GetDlgItem(hwnd, IDC_EDIT_DESCRIPTION), paccount->description);
-			CopyEditValueIntoAccount(GetDlgItem(hwnd, IDC_EDIT_USERNAMEFIELD), paccount->usernamefield);
-			CopyEditValueIntoAccount(GetDlgItem(hwnd, IDC_EDIT_PASSWORDFIELD), paccount->passwordfield);
-			
+			Account& account = *paccount;
+
+			account[L"id"] = MakeEditValueIntoString(GetDlgItem(hwnd, IDC_EDIT_ID));
+			account[L"name"] = MakeEditValueIntoString(GetDlgItem(hwnd, IDC_EDIT_NAME));
+			account[L"url"] = MakeEditValueIntoString(GetDlgItem(hwnd, IDC_EDIT_URL));
+			account[L"username"] = MakeEditValueIntoString(GetDlgItem(hwnd, IDC_EDIT_USERNAME));
+			account[L"password"] = MakeEditValueIntoString(GetDlgItem(hwnd, IDC_EDIT_PASSWORD2));
+			account[L"description"] = MakeEditValueIntoString(GetDlgItem(hwnd, IDC_EDIT_DESCRIPTION));
+			account[L"usernamefield"] = MakeEditValueIntoString(GetDlgItem(hwnd, IDC_EDIT_USERNAMEFIELD));
+			account[L"passwordfield"] = MakeEditValueIntoString(GetDlgItem(hwnd, IDC_EDIT_PASSWORDFIELD));
+		}
 			//	Fall through to IDCANCEL
 
 		case IDCANCEL:

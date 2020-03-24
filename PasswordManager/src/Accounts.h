@@ -5,6 +5,9 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <map>
+#include <unordered_map>
+#include <utility>
 
 #include <string.h>
 
@@ -26,16 +29,22 @@ class Account {
 
 public:
 
-	unsigned int	index;
+	enum Field {
+		ID = 0x01,
+		NAME = 0x02,
+		URL = 0x04,
+		USERNAME = 0x08,
+		PASSWORD = 0x10,
+		DESCRIPTION = 0x20,
+		USERNAMEFIELD = 0x40,
+		PASSWORDFIELD = 0x80,
+		ALL = 0xFF,
+		NONE = 0x00
+	};
 
-	std::wstring	id;
-	std::wstring	name;
-	std::wstring	url;
-	std::wstring	username;
-	std::wstring	password;
-	std::wstring	description;
-	std::wstring	usernamefield;
-	std::wstring	passwordfield;
+	using account_pair = std::pair<Account::Field, std::wstring>;
+
+	unsigned int	index;
 
 	Account() = default;
 
@@ -48,6 +57,8 @@ public:
 	Account& operator=(Account&& cp_Account) = default;
 
 	std::wstring to_string() const {
+		auto& name = m_fields.at(Account::Field::NAME);
+		auto& username = m_fields.at(Account::Field::USERNAME);
 		return name + L" " + username;
 	}
 
@@ -56,6 +67,41 @@ public:
 	operator std::wstring() {
 		return this->to_string();
 	}
+
+	const std::vector<std::wstring> * getStrings(DWORD field) const;
+
+	std::wstring getString(Account::Field field) const { return m_fields.at(field); };
+	std::wstring getString(const std::wstring& str) const {
+		auto field = getFieldValFromString(str);
+		return getString(field);
+	}
+
+	void setString(Account::Field field, const std::wstring& str) { m_fields[field] = str; }
+	void setString(const std::wstring& key, const std::wstring str) {
+		auto field = getFieldValFromString(key);
+		setString(field, str);
+	}
+
+	std::wstring& operator[](Account::Field field);
+	std::wstring& operator[](const std::wstring& str);
+
+	Account::Field getFieldValFromString(const std::wstring& str) const;
+
+private:
+
+	std::unordered_map<Account::Field, std::wstring> m_fields;
+
+	std::map<std::wstring, Account::Field> m_str_to_field = {
+		{L"id", Account::Field::ID},
+		{L"name", Account::Field::NAME},
+		{L"url", Account::Field::URL},
+		{L"username", Account::Field::USERNAME},
+		{L"password", Account::Field::PASSWORD},
+		{L"description", Account::Field::DESCRIPTION},
+		{L"usernamefield", Account::Field::USERNAMEFIELD},
+		{L"passwordfield", Account::Field::PASSWORDFIELD}
+	};
+
 };
 
 class Accounts {	

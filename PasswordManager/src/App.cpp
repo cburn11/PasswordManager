@@ -191,15 +191,15 @@ void LaunchBrowser(HWND hwnd) {
 	const Account * paccount;
 	if( GetSelectedAccount(hwnd, &paccount) ) {;
 
-		if( paccount->url.size() == 0 ) {
-			wstring msg = paccount->name + L" has no URL.";
+		if( paccount->getString(Account::Field::URL).size() == 0 ) {
+			wstring msg = paccount->getString(Account::Field::NAME) + L" has no URL.";
 			MessageBox(hwnd, msg.c_str(), L"No URL", MB_ICONEXCLAMATION);
 			return;
 		}
 
 		wstring cmdline = pUserData->pBrowserCommand->GetParameters();
 		cmdline += L" ";
-		cmdline += paccount->url;
+		cmdline += paccount->getString(Account::Field::URL);
 		/*cmdline += paccount->url;
 		cmdline += L" ";
 		cmdline += paccount->usernamefield + L" " + paccount->username;
@@ -255,15 +255,18 @@ void LaunchBrowser(HWND hwnd) {
 //	hr = pInputElement->focus();
 //}
 
-void ShowClipboardMonitorDialog(HWND hwndParent, UserData * pUserData, const Account * paccount, bool fIncludeURL) {
+void ShowClipboardMonitorDialogEx(HWND hwndParent, UserData * pUserData, const Account * paccount, 
+	const std::vector<std::wstring> * pStrs) {
+
+	if( !paccount )	return;
 
 	HINSTANCE hInstance = (HINSTANCE) GetModuleHandle(nullptr);
 
-	auto hwnd = CreateDialogParam(hInstance, 
-		MAKEINTRESOURCE(IDD_DIALOG_CB), 
+	auto hwnd = CreateDialogParam(hInstance,
+		MAKEINTRESOURCE(IDD_DIALOG_CB),
 		hwndParent,
-		fIncludeURL ? ClipboardMonitor::UrlDlgProc : ClipboardMonitor::MainDlgProc, 
-		(LPARAM) paccount);
+		ClipboardMonitor::MainDlgProc,
+		(LPARAM) pStrs);
 
 	pUserData->hwndClipboardMonitor = hwnd;
 
@@ -280,6 +283,17 @@ void ShowClipboardMonitorDialog(HWND hwndParent, UserData * pUserData, const Acc
 
 }
 
+void ShowClipboardMonitorDialog(HWND hwndParent, UserData * pUserData, const Account * paccount, bool fIncludeURL) {
+
+	DWORD fields = Account::Field::USERNAME | Account::Field::PASSWORD;
+
+	if( fIncludeURL )
+		fields |= Account::Field::URL;
+
+	auto pStrs = paccount->getStrings(fields);
+
+	ShowClipboardMonitorDialogEx(hwndParent, pUserData, paccount, pStrs);
+}
 
 //IWebBrowser2 * LaunchIE(const WCHAR * szURL) {
 //
@@ -319,6 +333,26 @@ void LaunchClipboardMonitor(HWND hwnd, bool fIncludeURL) {
 	}
 }
 
+void LaunchClipboardMonitorWithAccount(HWND hwnd) {
+
+	UserData * pUserData = (UserData *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+	if( !pUserData )
+		return;
+
+	if( pUserData->hwndClipboardMonitor ) {
+		SendMessage(pUserData->hwndClipboardMonitor, WM_CLOSE, NULL, NULL);
+		pUserData->hwndClipboardMonitor = NULL;
+	}
+
+	const Account * paccount;
+	if( GetSelectedAccount(hwnd, &paccount) ) {
+
+		auto pStrs = paccount->getStrings(Account::Field::ALL);
+		ShowClipboardMonitorDialogEx(hwnd, pUserData, paccount, pStrs);
+
+	}
+}
+
 //void LaunchBrowserClipboard(HWND hwnd) {
 //
 //	UserData * pUserData = (UserData *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
@@ -347,8 +381,8 @@ void LaunchAgnosticBrowserClipboard(HWND hwnd) {
 	const Account * paccount;
 	if( GetSelectedAccount(hwnd, &paccount) ) {
 
-		if( paccount->url.size() == 0 ) {
-			wstring msg = paccount->name + L" has no URL.";
+		if( paccount->getString(Account::Field::URL).size() == 0 ) {
+			wstring msg = paccount->getString(Account::Field::NAME) + L" has no URL.";
 			MessageBox(hwnd, msg.c_str(), L"No URL", MB_ICONEXCLAMATION);
 			return;
 		}
@@ -361,7 +395,7 @@ void LaunchAgnosticBrowserClipboard(HWND hwnd) {
 		std::wstring params;
 		params += pUserData->pBrowserCommand->GetDefaultParameters();
 		params += L" ";
-		params += paccount->url.c_str();
+		params += paccount->getString(Account::Field::URL).c_str();
 
 		auto ret = (int) ShellExecute(nullptr, L"open", exec.c_str(),
 			params.c_str(), nullptr, SW_SHOW);
@@ -397,6 +431,8 @@ void UpdateMenuItems(HWND hwnd) {
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_MOVEAFTER, MF_ENABLED);
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_MOVEBEFORE, MF_ENABLED);
 
+		ret = EnableMenuItem(hMenu, ID_ACTIONS_COPY_ACCOUNT, MF_ENABLED);
+
 	} else {
 
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_LAUNCHBROWSER, MF_GRAYED);
@@ -413,6 +449,8 @@ void UpdateMenuItems(HWND hwnd) {
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_MOVEAFTER, MF_GRAYED);
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_MOVEBEFORE, MF_GRAYED);
 
+		ret = EnableMenuItem(hMenu, ID_ACTIONS_COPY_ACCOUNT, MF_GRAYED);
+		
 		fFirstRun = false;
 	}
 
@@ -635,7 +673,9 @@ void SaveFileAs(HWND hwndParent) {
 	const WCHAR * szFilename;
 	if( GetFilename(hwndParent, GetFilenameType::save, &szFilename) ) {
 				 
-		pUserData->pAccounts->SaveAccountsAs(szFilename);
+		auto fSaved = pUserData->pAccounts->SaveAccountsAs(szFilename);
+		if( !fSaved )	return;
+
 		SetWindowText(hwndParent, szFilename);
 		
 		pUserData->pRecentFiles->FileOpened(szFilename);

@@ -1,6 +1,8 @@
 #include <Windows.h>
 #include <windowsx.h>
 
+#include <memory>
+#include <vector>
 #include <string>
 using std::wstring;
 
@@ -136,15 +138,18 @@ namespace ClipboardMonitor {
 
 		g_hwnd = hwnd;
 
-		Account * paccount = (Account *) lParam;
-		g_pAccount = paccount;
 		g_hwndList = GetDlgItem(hwnd, IDC_LIST_CB);
 		
-		if( paccount->username.size() > 0 )		ListBox_AddString(g_hwndList, paccount->username.c_str());
-		if( paccount->password.size() > 0 )		ListBox_AddString(g_hwndList, paccount->password.c_str());
+		std::unique_ptr<std::vector<std::wstring>> pStrs{ ( std::vector<std::wstring> * ) lParam };
 
-		PutStringOnClipboard(paccount->username.c_str());
+		for( const std::wstring& str : *pStrs ) {
+
+			ListBox_AddString(g_hwndList, str.c_str());
+
+		}
+
 		ListBox_SetCurSel(g_hwndList, 0);
+		PutStringOnClipboard(pStrs->at(0).c_str());
 
 		MonitorKeystrokes(true, llkbhkproc);
 	
@@ -208,26 +213,5 @@ namespace ClipboardMonitor {
 
 		return FALSE;
 
-	}
-
-	INT_PTR CALLBACK UrlDlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-
-		if( WM_INITDIALOG == message ) {
-
-			auto super_return = MainDlgProc(hwnd, message, wParam, lParam);
-
-			if( g_pAccount ) {
-				
-				if( g_pAccount->url.size() > 0 )		ListBox_InsertString(g_hwndList, 0, g_pAccount->url.c_str());
-
-				ListBox_SetCurSel(g_hwndList, 0);
-
-				PutStringOnClipboard(g_pAccount->url.c_str());
-			}
-
-			return super_return;
-		}
-
-		return MainDlgProc(hwnd, message, wParam, lParam);
 	}
 }

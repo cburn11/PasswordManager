@@ -45,19 +45,37 @@ wstring SanitizeXML(const wstring& xml) {
 	return L"";
 }
 
-#define MEMBER_TO_XML(x) L"<" #x L">" + SanitizeXML(x) + L"</" #x L">"
+#define MEMBER_TO_XML(tag, value) L"<" #tag L">" + SanitizeXML(value) + L"</" #tag L">"
 
 std::wstring Account::to_xml() const {
 
 	std::wstring xml{ L"<account>" };
-	xml += MEMBER_TO_XML(id);
-	xml += MEMBER_TO_XML(name);
-	xml += MEMBER_TO_XML(url);
-	xml += MEMBER_TO_XML(username);
-	xml += MEMBER_TO_XML(password);
-	xml += MEMBER_TO_XML(description);
-	xml += MEMBER_TO_XML(usernamefield);
-	xml += MEMBER_TO_XML(passwordfield);
+	std::wstring field;
+
+	field = m_fields.at(Account::Field::ID);
+	xml += MEMBER_TO_XML(id, field);
+
+	field = m_fields.at(Account::Field::NAME);
+	xml += MEMBER_TO_XML(name, field);
+
+	field = m_fields.at(Account::Field::URL);
+	xml += MEMBER_TO_XML(url, field);
+
+	field = m_fields.at(Account::Field::USERNAME);
+	xml += MEMBER_TO_XML(username, field);
+
+	field = m_fields.at(Account::Field::PASSWORD);
+	xml += MEMBER_TO_XML(password, field);
+
+	field = m_fields.at(Account::Field::DESCRIPTION);
+	xml += MEMBER_TO_XML(description, field);
+
+	field = m_fields.at(Account::Field::USERNAMEFIELD);
+	xml += MEMBER_TO_XML(usernamefield, field);
+
+	field = m_fields.at(Account::Field::PASSWORDFIELD);
+	xml += MEMBER_TO_XML(passwordfield, field);
+
 	xml += L"</account>";	
 
 	return xml;
@@ -83,34 +101,59 @@ Account::Account(IXMLDOMNode * pAccount) {
 
 				BSTR bstrName, bstrText;
 				pNode->get_nodeName(&bstrName);
-				pNode->get_text(&bstrText);
-				wstring nodename{ (WCHAR *) bstrName };
-				SysFreeString(bstrName);
+				pNode->get_text(&bstrText);				
 
-				if( nodename == L"name" ) {
-					name = (WCHAR *) bstrText;
-				} else if( nodename == L"url" ) {
-					url = (WCHAR *) bstrText;
-				} else if( nodename == L"username" ) {
-					username = (WCHAR *) bstrText;
-				} else if( nodename == L"password" ) {
-					password = (WCHAR *) bstrText;
-				} else if( nodename == L"description" ) {
-					description = (WCHAR *) bstrText;
-				} else if( nodename == L"id" ) {
-					id = (WCHAR *) bstrText;
-				} else if( nodename == L"usernamefield" ) {
-					usernamefield = (WCHAR *) bstrText;
-				} else if( nodename == L"passwordfield" ) {
-					passwordfield = (WCHAR *) bstrText;
-				}
-				
+				auto field = getFieldValFromString(bstrName);
+				if( field != Account::Field::NONE )
+					m_fields[field] = bstrText;
+
+				SysFreeString(bstrName);
 				SysFreeString(bstrText);
 			}
 		}
+	}
+}
+
+std::wstring& Account::operator[](Account::Field field) {
+
+	return m_fields[field];
+
+}
+
+std::wstring& Account::operator[](const std::wstring& str) {
+
+	auto field = getFieldValFromString(str);
+
+	return m_fields[field];
+}
+
+Account::Field Account::getFieldValFromString(const std::wstring& str) const {
+
+	try {
+
+		return m_str_to_field.at(str);
+
+	} catch( std::exception e ) {
+
+		return Account::Field::NONE;
 
 	}
 
+}
+
+const std::vector<std::wstring> * Account::getStrings(DWORD fields) const {
+
+	auto pStrs = new std::vector<std::wstring>{};
+
+	if( fields & Account::Field::URL )	pStrs->push_back(m_fields.at(Account::Field::URL));
+	if( fields & Account::Field::USERNAME )	pStrs->push_back(m_fields.at(Account::Field::USERNAME));
+	if( fields & Account::Field::PASSWORD )	pStrs->push_back(m_fields.at(Account::Field::PASSWORD));
+	if( fields & Account::Field::ID )	pStrs->push_back(m_fields.at(Account::Field::ID));
+	if( fields & Account::Field::DESCRIPTION )	pStrs->push_back(m_fields.at(Account::Field::DESCRIPTION));
+	if( fields & Account::Field::USERNAMEFIELD )	pStrs->push_back(m_fields.at(Account::Field::USERNAMEFIELD));
+	if( fields & Account::Field::PASSWORDFIELD )	pStrs->push_back(m_fields.at(Account::Field::PASSWORDFIELD));
+
+	return pStrs;
 }
 
 Accounts::Accounts() {
@@ -599,29 +642,30 @@ Accounts::Account_Filter::Account_Filter(const WCHAR * szFilter, Filter_Type typ
 
 	transform(begin(filter), end(filter), begin(filter), tolower);
 
-	size_t offset;
+	Account::Field field;
+
 	switch( type ) {
 
 	case Filter_Type::Name:
-		offset = offsetof(Account, name);	
+		field = Account::Field::NAME;
 		break;
 
 	case Filter_Type::Url:
-		offset = offsetof(Account, url);
+		field = Account::Field::URL;
 		break;
 
 	case Filter_Type::Username:
-		offset = offsetof(Account, username);
+		field = Account::Field::USERNAME;
 		break;
 
 	case Filter_Type::Description:
-		offset = offsetof(Account, description);
+		field = Account::Field::DESCRIPTION;
 		break;
 	}
 
 	for( auto& account : *pAccounts ) {
 
-		wstring target = *((wstring *) (((BYTE *) &account) + offset));		
+		wstring target = account.getString(field);
 
 		transform(begin(target), end(target), begin(target), tolower);
 

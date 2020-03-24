@@ -244,6 +244,11 @@ void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
 			LaunchClipboardMonitor(hwnd, true);
 			break;
 
+		case ID_ACC_COPY_ACCOUNT:
+		case ID_ACTIONS_COPY_ACCOUNT:
+			LaunchClipboardMonitorWithAccount(hwnd);
+			break;
+
 		case ID_ACC_EXPORTXML:
 		case ID_ACTIONS_EXPORTXML:
 			ExportXML(hwnd);

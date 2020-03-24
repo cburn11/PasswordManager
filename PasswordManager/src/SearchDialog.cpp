@@ -222,12 +222,12 @@ void SearchDialog::Filter(const WCHAR * szFilter) {
 
 				case Filter_Type::Url:
 					str += L"URL: ";
-					str += paccount->url;
+					str += paccount->getString(Account::Field::URL);
 					break;
 
 				case Filter_Type::Description:
 					str += L"Description: ";
-					str += paccount->description;
+					str += paccount->getString(Account::Field::DESCRIPTION);
 					break;
 				}
 

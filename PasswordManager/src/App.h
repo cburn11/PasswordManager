@@ -15,6 +15,8 @@ void LaunchAgnosticBrowserClipboard(HWND hwnd);
 
 void LaunchClipboardMonitor(HWND hwnd, bool fIncludeURL);
 
+void LaunchClipboardMonitorWithAccount(HWND hwnd);
+
 void UpdateMenuItems(HWND hwnd);
 
 void EditEntry(HWND hwnd);
