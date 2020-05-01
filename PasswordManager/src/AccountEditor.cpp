@@ -16,11 +16,13 @@
 using std::wstring;
 
 BOOL g_fDisableNavigation = FALSE;
+BOOL g_fUnsavedChanges = FALSE;
 
 namespace AccountEditor {
 
 	BOOL Cls_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam);
 	void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify);
+	void Cls_OnKey(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags);
 
 	void UpdateEditWnds(HWND hwndEditor, const Account * paccount);
 
@@ -35,24 +37,10 @@ namespace AccountEditor {
 			if( g_fDisableNavigation )	break;
 
 			HWND hwndEditorWnd = GetParent(hwnd);
-			HWND hwndParentApp = GetParent(hwndEditorWnd);
-			Account * pNextAccount = nullptr;
-			if( wParam == VK_NEXT ) {
 
-				//EndDialog(hwndEditorWnd, LAUNCH_EDITOR_NEXT);
-				SendMessage(hwndParentApp, GET_NEXT_ACCOUNT, 0, (LPARAM) &pNextAccount);
+			if( wParam == VK_NEXT || wParam == VK_PRIOR ) {
 
-			} else if( wParam == VK_PRIOR ) {
-
-				//EndDialog(hwndEditorWnd, LAUNCH_EDITOR_PRIOR);
-				SendMessage(hwndParentApp, GET_PRIOR_ACCOUNT, 0, (LPARAM) &pNextAccount);
-
-			}
-
-			if( pNextAccount ) {
-
-				UpdateEditWnds(hwndEditorWnd, pNextAccount);
-
+				PostMessage(hwndEditorWnd, WM_KEYDOWN, wParam, lParam);
 			}
 
 			break;
@@ -68,6 +56,7 @@ namespace AccountEditor {
 
 			HANDLE_DLG_MSG(hwnd, WM_INITDIALOG, Cls_OnInitDialog);
 			HANDLE_DLG_MSG(hwnd, WM_COMMAND, Cls_OnCommand);
+			HANDLE_DLG_MSG(hwnd, WM_KEYDOWN, Cls_OnKey);
 
 		}
 
@@ -104,16 +93,19 @@ namespace AccountEditor {
 			}
 		}
 
+		g_fUnsavedChanges = FALSE;
+
+		Button_Enable(GetDlgItem(hwndEditor, IDOK), FALSE);
+
 	}
 
 	BOOL Cls_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam) {
 		
 		g_fDisableNavigation = lParam ? FALSE : TRUE;
-
+		
 		const Account * paccount = (const Account *) lParam;
-		UpdateEditWnds(hwnd, paccount);
+		UpdateEditWnds(hwnd, paccount);	
 
-		Button_Enable(GetDlgItem(hwnd, IDOK), FALSE);
 
 		int focus_target = paccount ? IDC_EDIT_ID : IDC_EDIT_NAME;
 		SetFocus(GetDlgItem(hwnd, focus_target));
@@ -160,11 +152,31 @@ namespace AccountEditor {
 			account[L"description"] = MakeEditValueIntoString(GetDlgItem(hwnd, IDC_EDIT_DESCRIPTION));
 			account[L"usernamefield"] = MakeEditValueIntoString(GetDlgItem(hwnd, IDC_EDIT_USERNAMEFIELD));
 			account[L"passwordfield"] = MakeEditValueIntoString(GetDlgItem(hwnd, IDC_EDIT_PASSWORDFIELD));
+
+			g_fUnsavedChanges = FALSE;
 		}
 			//	Fall through to IDCANCEL
 
 		case IDCANCEL:
+
+			if( g_fUnsavedChanges ) {
+
+				auto fSave = MessageBox(hwnd, L"Do you want to save changes before closing?", 
+					L"Unsaved changes", MB_ICONQUESTION | MB_YESNO);
+				
+				if( IDYES == fSave ) {
+
+					// Simulate an OK (caption: Save) button press
+					PostMessage(hwnd, WM_COMMAND, MAKEWPARAM(IDOK, codeNotify), (LPARAM) hwndCtl);
+
+					break;
+
+				}
+
+			}
+
 			EndDialog(hwnd, (INT_PTR) paccount);
+			
 			break;
 
 		case IDC_EDIT_ID:
@@ -176,13 +188,51 @@ namespace AccountEditor {
 		case IDC_EDIT_USERNAMEFIELD:
 		case IDC_EDIT_PASSWORDFIELD:
 
-			if( codeNotify == EN_CHANGE )
+			if( codeNotify == EN_CHANGE ) {
 				Button_Enable(GetDlgItem(hwnd, IDOK), TRUE);
+				g_fUnsavedChanges = TRUE;
+			}
 
 			break;
 
 		}
 
 	}
-	
+
+	void Cls_OnKey(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags) {
+
+		HWND hwndParentApp = GetParent(hwnd);
+		Account * pNextAccount = nullptr;
+
+		UINT msg = 0;
+
+		switch( vk ) {
+
+		case VK_NEXT:
+			msg = GET_NEXT_ACCOUNT;
+			break;
+
+		case VK_PRIOR:
+			msg = GET_PRIOR_ACCOUNT;
+			break;
+
+		}
+
+		if( msg > 0 ) {
+
+			if( g_fUnsavedChanges && ( IDOK !=
+				MessageBox(hwnd, L"Unsaved changes will be discarded.",
+					L"Unsaved Changes", MB_OKCANCEL | MB_ICONEXCLAMATION) ) ) {
+
+				return;
+			}
+
+			SendMessage(hwndParentApp, msg, 0, (LPARAM) &pNextAccount);
+
+			if( pNextAccount ) {
+
+				UpdateEditWnds(hwnd, pNextAccount);
+			}
+		}
+	}	
 }
