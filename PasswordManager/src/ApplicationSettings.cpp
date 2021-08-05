@@ -304,8 +304,8 @@ bool ApplicationSettings::clear(const WCHAR * szKey) {
 	try {
 		
 		auto& reg_var = kv_pairs.at(szKey);
-		
-		VARIANT * pvar = &( (VARIANT) reg_var );
+		auto& var = reg_var.getVariant();
+		VARIANT * pvar = &var;
 
 		return ( VariantClear(pvar) == S_OK );
 

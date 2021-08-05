@@ -72,6 +72,7 @@ public:
 	void setBinarySize(size_t cb) { m_cbBin = cb; }
 
 	operator VARIANT() { return m_var; }
+	VARIANT& getVariant() { return m_var; }
 
 	// Attach frees any memory currently held (VariantClear), and then makes a copy of the src structure.
 	// Which means Attach takes ownership of any memory (bstr) to which srcVar points.
