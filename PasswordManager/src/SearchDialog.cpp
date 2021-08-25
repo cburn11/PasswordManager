@@ -18,12 +18,14 @@ namespace SearchDialogFunctions {
 		switch( message ) {
 
 		case CB_SHOWDROPDOWN: {
-			
+
 			auto ret = CallWindowProc(oldproc, hwnd, message, wParam, lParam);
-			
+
 			if( ComboBox_GetCount(hwnd) > 1 )
 				ComboBox_SetCurSel(hwnd, -1);
-				
+
+			SetCursor(LoadCursor(NULL, IDC_ARROW));
+
 			return ret;
 		}
 
