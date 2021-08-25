@@ -25,6 +25,7 @@ void Cls_OnMouseWheel(HWND hwnd, int xPos, int yPos, int zDelta, UINT fwKeys);
 void Cls_OnKey(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags);
 void Cls_OnRButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags);
 void Cls_OnRButtonUp(HWND hwnd, int x, int y, UINT keyFlags);
+void Cls_OnSize(HWND hwnd, UINT state, int cx, int cy);
 
 BOOL Cls_OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct);
 
@@ -57,6 +58,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 	auto width = pUserData->pSettings->getDWORD(L"width");		if( 0 == width )	width = 800;
 	auto height = pUserData->pSettings->getDWORD(L"height");	if( 0 == height )	height = 600;
 
+	auto fMaximized = pUserData->pSettings->getDWORD(L"fMaximized");
+
 	auto hwnd = CreateWindow(L"ListBoxCustom", L"Password Manager",
 		WS_OVERLAPPEDWINDOW | WS_VSCROLL | WS_HSCROLL |LBS_USETABSTOPS,
 		x, y, width, height,
@@ -70,7 +73,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 		ProcessCommandLine(hwnd, szCmdLine);
 
 	UpdateWindow(hwnd);
-	ShowWindow(hwnd, iShowCmd);
+	ShowWindow(hwnd, fMaximized ?  SW_MAXIMIZE : iShowCmd);
 
 	MSG msg{ 0 };
 	while( GetMessage(&msg, NULL, 0, 0) ) {
@@ -100,6 +103,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 		HANDLE_MSG(hwnd, WM_COMMAND, Cls_OnCommand);		
 		HANDLE_MSG(hwnd, WM_TIMER, Cls_OnTimer);
 		HANDLE_MSG(hwnd, WM_MOUSEWHEEL, Cls_OnMouseWheel);
+		HANDLE_MSG(hwnd, WM_SIZE, Cls_OnSize);
 			
 		HANDLE_MSG(hwnd, WM_RBUTTONDOWN, Cls_OnRButtonDown);
 		HANDLE_MSG(hwnd, WM_RBUTTONUP, Cls_OnRButtonUp);
@@ -397,4 +401,23 @@ void Cls_OnRButtonUp(HWND hwnd, int x, int y, UINT keyFlags) {
 	if( !pUserData )	return;
 
 	CallWindowProc((WNDPROC) pUserData->oldproc, hwnd, WM_LBUTTONUP, (WPARAM) keyFlags, MAKELPARAM(x, y));
+}
+
+void Cls_OnSize(HWND hwnd, UINT state, int cx, int cy) {
+
+	UserData* pUserData = (UserData*) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+	if( !pUserData )	return;
+
+	switch( state ) {
+
+	case SIZE_MAXIMIZED:
+		pUserData->pSettings->setDWORD(L"fMaximized", 1);
+		break;
+
+	case SIZE_RESTORED: 
+		pUserData->pSettings->setDWORD(L"fMaximized", 0);
+		break;
+
+	}
+
 }
