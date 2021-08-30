@@ -75,3 +75,5 @@ void MoveAccount(HWND hwndParent, int type);
 HMENU CreateContextMenu(HWND hwnd);
 
 void ShowContextMenu(HWND hwnd, int clientX, int clientY);
+
+void CloneEntry(HWND hwnd);

@@ -156,6 +156,19 @@ const std::vector<std::wstring> * Account::getStrings(DWORD fields) const {
 	return pStrs;
 }
 
+Account Account::clone() const {
+
+	Account new_account{};
+
+	for( const auto& [field, str] : m_fields ) {
+		
+		new_account.setString(field, str);
+
+	}
+
+	return new_account;
+}
+
 Accounts::Accounts() {
 
 	m_hPersistentFile = INVALID_HANDLE_VALUE;

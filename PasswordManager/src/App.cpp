@@ -27,6 +27,7 @@
 #include "AboutDialog.h"
 #include "AccountXMLDialog.h"
 #include "SearchDialog.h"
+#include "EncryptionHelper.h"
 
 #define UPDATE_SELECTED_ACCOUNT 0xE001
 
@@ -425,6 +426,7 @@ void UpdateMenuItems(HWND hwnd) {
 
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_EDITENTRY, MF_ENABLED);
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_REMOVEENTRY, MF_ENABLED);
+		ret = EnableMenuItem(hMenu, ID_ACTIONS_CLONEENTRY, MF_ENABLED);
 
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_MOVEUP, MF_ENABLED);
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_MOVEDOWN, MF_ENABLED);
@@ -443,6 +445,7 @@ void UpdateMenuItems(HWND hwnd) {
 
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_EDITENTRY, MF_GRAYED);
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_REMOVEENTRY, MF_GRAYED);
+		ret = EnableMenuItem(hMenu, ID_ACTIONS_CLONEENTRY, MF_GRAYED);
 
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_MOVEUP, MF_GRAYED);
 		ret = EnableMenuItem(hMenu, ID_ACTIONS_MOVEDOWN, MF_GRAYED);
@@ -968,4 +971,29 @@ void ShowContextMenu(HWND hwnd, int clientX, int clientY) {
 	ClientToScreen(hwnd, &p);
 
 	auto ret = TrackPopupMenuEx(pUserData->hmenuContext, TPM_TOPALIGN | TPM_LEFTALIGN, p.x, p.y, hwnd, NULL);
+}
+
+void CloneEntry(HWND hwnd) {
+
+	UserData* pUserData = (UserData*) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+	if( !pUserData->pAccounts )
+		return;
+
+	const Account* paccount;
+	
+	if( GetSelectedAccount(hwnd, &paccount) ) {
+		
+		auto new_account = paccount->clone();
+
+		auto id = ::GenerateRandomString(8);
+		new_account.setString(Account::ID, id);
+
+		pUserData->pAccounts->AddAccount(std::move(new_account));
+
+		UpdateDisplay(hwnd);
+
+		auto size = ListBox_GetCount(hwnd) - 1;
+		ListBox_SetCurSel(hwnd, size);
+	}
+
 }

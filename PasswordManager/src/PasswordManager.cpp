@@ -311,6 +311,11 @@ void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
 		case ID_ACTIONS_MOVEAFTER:
 			MoveAccount(hwnd, MOVE_ACCOUNT_AFTER);
 			break;
+
+		case ID_ACC_CLONE_ACCOUNT:
+		case ID_ACTIONS_CLONEENTRY:
+			CloneEntry(hwnd);
+			break;
 	}
 
 	if( id >= RECENT_FILE_MENU_ID && id < RECENT_FILE_MENU_ID + 5 ) {

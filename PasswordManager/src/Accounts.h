@@ -62,6 +62,8 @@ public:
 		return name + L" " + username;
 	}
 
+	Account clone() const;
+
 	std::wstring to_xml() const;
 
 	operator std::wstring() {
