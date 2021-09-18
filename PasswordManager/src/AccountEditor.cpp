@@ -90,6 +90,9 @@ namespace AccountEditor {
 
 				std::wstring strRand{ ::GenerateRandomString(8) };
 				Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_ID), strRand.c_str());
+
+				Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_PASSWORD2),
+					::GenerateRandomString(16).c_str());
 			}
 		}
 
