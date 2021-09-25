@@ -2,6 +2,8 @@
 #include <windowsx.h>
 //#include <MsXml6.h>
 
+#include <atlcomcli.h>
+
 #include "resource.h"
 #include "Accounts.h"
 #include "AccountEditor.h"
@@ -10,6 +12,7 @@
 #include "App.h"
 #include "Tools.h"
 #include "PasswordManager.h"
+#include "DropTargetImpl.h"
 
 #define ComCtl6
 #include "CommonHeaders.h"
@@ -68,7 +71,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 		DWORD error = GetLastError();
 		return error;
 	}
-	
+
+	CComPtr<IDropTarget> pDropTarget{ new DropTarget(hwnd) };	
+	auto hr = RegisterDragDrop(hwnd, pDropTarget.p);
+
 	if( wcslen(szCmdLine) > 0 )
 		ProcessCommandLine(hwnd, szCmdLine);
 
@@ -140,6 +146,13 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 		ProcessClipboardMonitorClosing(hwnd);
 		break;
 
+	case PM_QUERYOPENFILE:
+		QueryOpenFile((const wchar_t*) wParam, (bool*) lParam);
+		break;
+
+	case PM_DRAGDROPOPENFILE:
+		OpenFile(hwnd, (const WCHAR*) lParam);
+		break;
 	}
 
 	return CallWindowProc(oldlistboxproc, hwnd, message, wParam, lParam);

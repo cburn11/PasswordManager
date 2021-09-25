@@ -77,3 +77,5 @@ HMENU CreateContextMenu(HWND hwnd);
 void ShowContextMenu(HWND hwnd, int clientX, int clientY);
 
 void CloneEntry(HWND hwnd);
+
+void QueryOpenFile(const wchar_t* szPath, bool* fRet);

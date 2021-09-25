@@ -10,6 +10,9 @@
 
 #define CBM_CLOSING (WM_USER + 10)
 
+#define PM_QUERYOPENFILE (WM_APP + 1)
+#define PM_DRAGDROPOPENFILE (WM_APP + 2)
+
 struct UserData {
 	LONG_PTR				oldproc = 0x00;
 	Accounts				* pAccounts = nullptr;

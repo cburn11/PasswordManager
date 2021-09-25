@@ -87,6 +87,8 @@ void ExitApplication(HWND hwnd) {
 		}
 	}
 
+	auto hr = RevokeDragDrop(hwnd);
+
 	PostQuitMessage(0);
 }
 
@@ -996,4 +998,22 @@ void CloneEntry(HWND hwnd) {
 		ListBox_SetCurSel(hwnd, size);
 	}
 
+}
+
+void QueryOpenFile(const wchar_t* szPath, bool* fRet) {
+
+	*fRet = false;
+
+	if (szPath != nullptr) {
+
+		std::wstring path{ szPath };
+
+		auto dot = path.find_last_of(L'.');
+
+		auto ext = path.substr(dot + 1, path.length() - dot);
+		if (ext == L"xml" ||
+			ext == L"pwm")
+
+			*fRet = true;		
+	}
 }
