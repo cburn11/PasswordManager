@@ -15,7 +15,7 @@ STDMETHODIMP DropTarget::QueryInterface(REFIID iid, void** punknown) {
 	HRESULT hr = E_NOINTERFACE;
 	*punknown = nullptr;
 
-	if (iid == IID_IUnknown || iid == IID_IDropTarget) {
+	if( iid == IID_IUnknown || iid == IID_IDropTarget ) {
 		*punknown = this;
 		this->AddRef();
 		hr = S_OK;
@@ -30,7 +30,7 @@ STDMETHODIMP DropTarget::DragEnter(IDataObject* pDataObj,
 	*pdwEffect = DROPEFFECT_NONE;
 
 	HRESULT hr = this->InspectIDataObject(pDataObj);
-	if (hr != S_OK)	return hr; 
+	if( hr != S_OK )	return hr; 
 
 	m_pCurrentDragDataObject = pDataObj;
 	*pdwEffect = DROPEFFECT_COPY;
@@ -40,7 +40,7 @@ STDMETHODIMP DropTarget::DragEnter(IDataObject* pDataObj,
 
 STDMETHODIMP DropTarget::DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) {
 	
-	if (m_pCurrentDragDataObject.p)
+	if( m_pCurrentDragDataObject.p )
 		*pdwEffect = DROPEFFECT_COPY;
 	else
 		*pdwEffect = DROPEFFECT_NONE;
@@ -59,11 +59,17 @@ STDMETHODIMP DropTarget::DragLeave(void) {
 STDMETHODIMP DropTarget::Drop(IDataObject* pDataObj, 
 	DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) {
 
-	if (m_pCurrentDragDataObject.p) {
+	if( m_pCurrentDragDataObject.p ) {
+
 		*pdwEffect = DROPEFFECT_COPY;
-		PostMessage(m_hwndMainWindow, PM_DRAGDROPOPENFILE, 0, (LPARAM)m_dragdrop_filepath.c_str());
+		
+		PostMessage(m_hwndMainWindow, PM_DRAGDROPOPENFILE, 0, 
+			(LPARAM) m_dragdrop_filepath.c_str());
+
 	} else {
+
 		*pdwEffect = DROPEFFECT_NONE;
+
 	}
 
 	return S_OK;
@@ -75,28 +81,28 @@ HRESULT DropTarget::InspectIDataObject(IDataObject * pDataObject) {
 	IEnumFORMATETC* pEnumFmtEtc = nullptr;
 
 	auto hr = pCurrentDragDataObject->EnumFormatEtc(DATADIR_GET, &pEnumFmtEtc);
-	if (S_OK != hr) return E_INVALIDARG;
+	if( S_OK != hr ) return E_INVALIDARG;
 
 	FORMATETC fmt_etc{ 0 };
 	ULONG cFetched = 0;
 
-	while (S_OK == pEnumFmtEtc->Next(1, &fmt_etc, &cFetched)) {
+	while( S_OK == pEnumFmtEtc->Next(1, &fmt_etc, &cFetched) ) {
 
-		if (fmt_etc.cfFormat == m_cf_filename) {
+		if( fmt_etc.cfFormat == m_cf_filename ) {
 
 			STGMEDIUM stgmedium{ 0 };
 
 			hr = pCurrentDragDataObject->GetData(&fmt_etc, &stgmedium);
-			if (S_OK == hr) {
+			if( S_OK == hr ) {
 
 				const wchar_t* p_str = (const wchar_t*) GlobalLock(stgmedium.hGlobal);
-				if (p_str) {
+				if( p_str ) {
 
 					bool fCanOpen = false;
 
 					SendMessage(m_hwndMainWindow, PM_QUERYOPENFILE, (WPARAM) p_str, (LPARAM) &fCanOpen);
 
-					if (fCanOpen) {
+					if( fCanOpen ) {
 
 						m_dragdrop_filepath = p_str;
 
