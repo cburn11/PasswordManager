@@ -32,6 +32,8 @@ void Cls_OnSize(HWND hwnd, UINT state, int cx, int cy);
 
 BOOL Cls_OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct);
 
+UserData* g_pUserData;
+
 LONG_PTR RegisterMainWindow() {
 
 	WNDCLASS wndclass;
@@ -53,6 +55,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 	HACCEL	haccelerators = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCELERATOR1));
 
 	UserData	* pUserData = new UserData;
+	g_pUserData = pUserData;
 	pUserData->oldproc = RegisterMainWindow();
 	pUserData->pSettings = new ApplicationSettings{ APPLICATION_SUBKEY };
 

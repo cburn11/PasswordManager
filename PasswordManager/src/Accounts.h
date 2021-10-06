@@ -70,7 +70,7 @@ public:
 		return this->to_string();
 	}
 
-	const std::vector<std::wstring> * getStrings(DWORD field) const;
+	std::vector<std::wstring> * getStrings(DWORD field) const;
 
 	std::wstring getString(Account::Field field) const { return m_fields.at(field); };
 	std::wstring getString(const std::wstring& str) const {

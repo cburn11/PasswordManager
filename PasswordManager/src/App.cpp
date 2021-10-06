@@ -259,7 +259,7 @@ void LaunchBrowser(HWND hwnd) {
 //}
 
 void ShowClipboardMonitorDialogEx(HWND hwndParent, UserData * pUserData, const Account * paccount, 
-	const std::vector<std::wstring> * pStrs) {
+	const std::vector<ClipboardMonitor::CM_string_pair> * pStrs) {
 
 	if( !paccount )	return;
 
@@ -288,14 +288,17 @@ void ShowClipboardMonitorDialogEx(HWND hwndParent, UserData * pUserData, const A
 
 void ShowClipboardMonitorDialog(HWND hwndParent, UserData * pUserData, const Account * paccount, bool fIncludeURL) {
 
-	DWORD fields = Account::Field::USERNAME | Account::Field::PASSWORD;
-
+	std::vector<ClipboardMonitor::CM_string_pair> *	pPairs = 
+		new std::vector<ClipboardMonitor::CM_string_pair>{};
+	if( !pPairs )	return;
+	
 	if( fIncludeURL )
-		fields |= Account::Field::URL;
+		pPairs->push_back({ paccount->getString(Account::Field::URL), false });
 
-	auto pStrs = paccount->getStrings(fields);
-
-	ShowClipboardMonitorDialogEx(hwndParent, pUserData, paccount, pStrs);
+	pPairs->push_back({ paccount->getString(Account::Field::USERNAME), false });
+	pPairs->push_back({ paccount->getString(Account::Field::PASSWORD), true });
+	
+	ShowClipboardMonitorDialogEx(hwndParent, pUserData, paccount, pPairs);
 }
 
 //IWebBrowser2 * LaunchIE(const WCHAR * szURL) {
@@ -350,8 +353,16 @@ void LaunchClipboardMonitorWithAccount(HWND hwnd) {
 	const Account * paccount;
 	if( GetSelectedAccount(hwnd, &paccount) ) {
 
-		auto pStrs = paccount->getStrings(Account::Field::ALL);
-		ShowClipboardMonitorDialogEx(hwnd, pUserData, paccount, pStrs);
+		std::unique_ptr<std::vector<std::wstring>> pStrs{ paccount->getStrings(Account::Field::ALL) };
+		if( !pStrs.get() )	return;
+
+		std::vector<ClipboardMonitor::CM_string_pair> * pPairs =
+			new std::vector<ClipboardMonitor::CM_string_pair>{};
+
+		for( auto& str : *pStrs )
+			pPairs->push_back({ std::move(str), false });
+		
+		ShowClipboardMonitorDialogEx(hwnd, pUserData, paccount, pPairs);
 
 	}
 }

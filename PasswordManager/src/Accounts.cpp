@@ -141,7 +141,7 @@ Account::Field Account::getFieldValFromString(const std::wstring& str) const {
 
 }
 
-const std::vector<std::wstring> * Account::getStrings(DWORD fields) const {
+std::vector<std::wstring> * Account::getStrings(DWORD fields) const {
 
 	auto pStrs = new std::vector<std::wstring>{};
 

@@ -18,6 +18,8 @@ HWND g_hwndList;
 
 Account * g_pAccount = nullptr;
 
+bool g_fMask;
+
 namespace ClipboardMonitor {
 
 	bool GetListBoxSelectedText(WCHAR ** pszText) {
@@ -70,16 +72,37 @@ namespace ClipboardMonitor {
 
 	void CopySelectionToClipboard() {
 
-		WCHAR * szText = nullptr;
-		if( GetListBoxSelectedText(&szText) ) {
+		auto sel = ListBox_GetCurSel(g_hwndList);
 
-			PutStringOnClipboard(szText);
-			delete[] szText;
+		std::vector<CM_string_pair>* pStrs = 
+			(std::vector<CM_string_pair> *) GetWindowLongPtr(g_hwnd, GWLP_USERDATA);
 
-		}
+		const auto& [str, fMask] = pStrs->at(sel);
+		PutStringOnClipboard(str.c_str());
 
 	}
 	
+	void UpdateListBoxStrings() {
+
+		auto cur_sel = ListBox_GetCurSel(g_hwndList);
+
+		ListBox_ResetContent(g_hwndList);
+
+		std::vector<CM_string_pair>* pStrs =
+			(std::vector<CM_string_pair> *) GetWindowLongPtr(g_hwnd, GWLP_USERDATA);
+
+		for( const auto& [str, fMask] : *pStrs ) {
+
+			if( fMask && g_fMask )
+				ListBox_AddString(g_hwndList, L"--------------");
+			else
+				ListBox_AddString(g_hwndList, str.c_str());
+
+		}
+
+		ListBox_SetCurSel(g_hwndList, cur_sel);
+	}
+
 	LRESULT CALLBACK llkbhkproc(int code, WPARAM wParam, LPARAM lParam) {
 
 		if( wParam == WM_KEYUP ) {
@@ -139,17 +162,25 @@ namespace ClipboardMonitor {
 		g_hwnd = hwnd;
 
 		g_hwndList = GetDlgItem(hwnd, IDC_LIST_CB);
-		
-		std::unique_ptr<std::vector<std::wstring>> pStrs{ ( std::vector<std::wstring> * ) lParam };
 
-		for( const std::wstring& str : *pStrs ) {
-
-			ListBox_AddString(g_hwndList, str.c_str());
-
+		HWND hwndCheckBoxMask = GetDlgItem(hwnd, IDC_CHECK_CBM_MASK);
+		if( g_pUserData->pSettings->getDWORD(L"mask_password") == 1 ) {
+			Button_SetCheck(hwndCheckBoxMask, TRUE);
+			g_fMask = true;
+		} else {
+			Button_SetCheck(hwndCheckBoxMask, FALSE);
+			g_fMask = false;
 		}
+		
+		std::vector<CM_string_pair> * pStrs{ ( std::vector<CM_string_pair> * ) lParam };
+		if( !pStrs ) return TRUE;
+
+		SetWindowLongPtr(hwnd, GWLP_USERDATA, ( LONG_PTR ) pStrs);
+
+		UpdateListBoxStrings();
 
 		ListBox_SetCurSel(g_hwndList, 0);
-		PutStringOnClipboard(pStrs->at(0).c_str());
+		PutStringOnClipboard(pStrs->at(0).first.c_str());
 
 		MonitorKeystrokes(true, llkbhkproc);
 	
@@ -165,6 +196,11 @@ namespace ClipboardMonitor {
 		HWND hwndParent = GetParent(hwnd);
 		SendMessage(hwndParent, CBM_CLOSING, NULL, NULL);
 		
+		std::vector<CM_string_pair>* pStrs = (std::vector<CM_string_pair> *) GetWindowLongPtr(g_hwnd, GWLP_USERDATA);
+		if( pStrs )	delete pStrs;
+
+		g_pUserData->pSettings->setDWORD(L"mask_password", g_fMask ? 1 : 0);
+
 		DestroyWindow(hwnd);
 	}
 
@@ -179,6 +215,19 @@ namespace ClipboardMonitor {
 			}
 
 			break;
+
+		case IDC_CHECK_CBM_MASK: {
+
+			auto fCheck = Button_GetCheck(hwndCtl);
+			if( fCheck )
+				g_fMask = true;
+			else
+				g_fMask = false;
+
+			UpdateListBoxStrings();
+
+			break;
+		}
 
 		}
 

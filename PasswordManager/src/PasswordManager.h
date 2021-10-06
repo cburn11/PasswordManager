@@ -38,3 +38,5 @@ struct UserData {
 		if( pSettings )			delete pSettings;
 	}
 };
+
+extern UserData* g_pUserData;	// PasswordManager.cpp
