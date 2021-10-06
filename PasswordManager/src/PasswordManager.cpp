@@ -86,7 +86,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 
 	MSG msg{ 0 };
 	while( GetMessage(&msg, NULL, 0, 0) ) {
-		if( !TranslateAccelerator(hwnd, haccelerators, &msg) ) {
+
+		if( !TranslateAccelerator(hwnd, haccelerators, &msg) && 
+			!IsDialogMessage(pUserData->hwndClipboardMonitor, &msg)) {
+
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
@@ -338,7 +341,6 @@ void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
 		OpenRecentFile(hwnd, id);
 		return;
 	}
-
 	if( id == RECENT_FILE_MENU_CLEAR ) {
 		ClearRecentFileMenu(hwnd);
 		return;
