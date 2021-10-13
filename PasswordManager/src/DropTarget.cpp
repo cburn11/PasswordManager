@@ -80,6 +80,8 @@ HRESULT DropTarget::InspectIDataObject(IDataObject * pDataObject) {
 	CComPtr<IDataObject> pCurrentDragDataObject{ pDataObject };
 	IEnumFORMATETC* pEnumFmtEtc = nullptr;
 
+	HRESULT hr_return = S_FALSE;
+
 	auto hr = pCurrentDragDataObject->EnumFormatEtc(DATADIR_GET, &pEnumFmtEtc);
 	if( S_OK != hr ) return E_INVALIDARG;
 
@@ -106,13 +108,13 @@ HRESULT DropTarget::InspectIDataObject(IDataObject * pDataObject) {
 
 						m_dragdrop_filepath = p_str;
 
-						hr = S_OK;
+						hr_return = S_OK;
 
 					} else {
 
 						this->DragLeave();
 
-						hr = S_FALSE;
+						hr_return = S_FALSE;
 					}
 
 					GlobalUnlock(stgmedium.hGlobal);
@@ -123,5 +125,5 @@ HRESULT DropTarget::InspectIDataObject(IDataObject * pDataObject) {
 
 	}
 
-	return hr;
+	return hr_return;
 }
