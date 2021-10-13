@@ -356,11 +356,15 @@ void LaunchClipboardMonitorWithAccount(HWND hwnd) {
 		std::unique_ptr<std::vector<std::wstring>> pStrs{ paccount->getStrings(Account::Field::ALL) };
 		if( !pStrs.get() )	return;
 
+		auto str_password = paccount->getString(Account::Field::PASSWORD);
+
 		std::vector<ClipboardMonitor::CM_string_pair> * pPairs =
 			new std::vector<ClipboardMonitor::CM_string_pair>{};
 
-		for( auto& str : *pStrs )
-			pPairs->push_back({ std::move(str), false });
+		for( auto& str : *pStrs ) {
+			auto fPassword = str == str_password;
+			pPairs->push_back({ std::move(str), fPassword });
+		}
 		
 		ShowClipboardMonitorDialogEx(hwnd, pUserData, paccount, pPairs);
 
