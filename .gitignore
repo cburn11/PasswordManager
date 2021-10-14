@@ -1,3 +1,7 @@
 build
 *.aps
 .vs
+x64
+Debug
+Release
+
