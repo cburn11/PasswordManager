@@ -1,10 +1,16 @@
+#define COBJMACROS
+
 #include <Windows.h>
 #include <windowsx.h>
 
 #include <CommCtrl.h>
 
+#include <string.h>
+
 #include "resource.h"
-#include "pswdgen.h"
+
+#include "pswdgen_h.h"
+#include "pswdgen_Application.h"
 
 #define ComCtl6
 #include "CommonHeaders.h"
@@ -15,11 +21,65 @@ BOOL Cls_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam);
 void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify);
 HBRUSH Cls_OnCtlColor(HWND hwnd, HDC hdc, HWND hwndChild, int type);
 LRESULT Cls_OnNotify(HWND hwnd, int id, NMHDR * pNMHDR);
+void Cls_OnDestroy(HWND hwnd);
 
 HWND	g_hCheckLower, g_hCheckUpper, g_hCheckDigits, g_hCheckSpaces, g_hCheckSymbols;
 HWND	g_hEditLower, g_hEditUpper, g_hEditDigits, g_hEditSpaces, g_hEditSymbols;
 
+HWND	g_hwndMain;
+
+BSTR	g_bstr_cLower, g_bstr_cUpper, g_bstr_cDigits, g_bstr_cSpaces, g_bstr_cSymbols;
+BSTR	g_bstr_lower, g_bstr_upper, g_bstr_digits, g_bstr_spaces, g_bstr_symbols;
+
+IPasswordGenerator* g_p_pswdgen = NULL;
+
 HINSTANCE g_hInstance;
+
+void ReadEditTextIntoBSTR(HWND hwndEdit, BSTR* pbstr) {
+
+	if( !pbstr )
+		return;
+
+	if( *pbstr )
+		SysFreeString(*pbstr);
+
+	if( IsWindowEnabled(hwndEdit) ) {
+
+		int cch = Edit_GetTextLength(hwndEdit);
+		*pbstr = SysAllocStringLen(NULL, cch);
+		Edit_GetText(hwndEdit, *pbstr, cch + 1);
+
+	} else {
+
+		*pbstr = SysAllocString(L"0");
+
+	}
+}
+
+BSTR GeneratePassword() {
+
+	HRESULT hr;
+	BSTR password = NULL;
+
+	ReadEditTextIntoBSTR(g_hEditLower, &g_bstr_cLower);
+	ReadEditTextIntoBSTR(g_hEditUpper, &g_bstr_cUpper);
+	ReadEditTextIntoBSTR(g_hEditDigits, &g_bstr_cDigits);
+	ReadEditTextIntoBSTR(g_hEditSymbols, &g_bstr_cSymbols);
+	ReadEditTextIntoBSTR(g_hEditSpaces, &g_bstr_cSpaces);
+
+	hr = IPasswordGenerator_SetProperty(g_p_pswdgen, g_bstr_lower, g_bstr_cLower, NULL);
+	hr = IPasswordGenerator_SetProperty(g_p_pswdgen, g_bstr_upper, g_bstr_cUpper, NULL);
+	hr = IPasswordGenerator_SetProperty(g_p_pswdgen, g_bstr_digits, g_bstr_cDigits, NULL);
+	hr = IPasswordGenerator_SetProperty(g_p_pswdgen, g_bstr_symbols, g_bstr_cSymbols, NULL);
+	hr = IPasswordGenerator_SetProperty(g_p_pswdgen, g_bstr_spaces, g_bstr_cSpaces, NULL);
+
+	hr = IPasswordGenerator_GeneratePassword(g_p_pswdgen, &password);
+	if( S_OK == hr ) {
+		Edit_SetText(GetDlgItem(g_hwndMain, IDC_EDIT_PASSWORD), password);
+	}
+
+	return password;
+}
 
 INT_PTR CALLBACK DialogProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 
@@ -29,6 +89,51 @@ INT_PTR CALLBACK DialogProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 		HANDLE_DLG_MSG(hwnd, WM_COMMAND, Cls_OnCommand);
 		HANDLE_DLG_MSG(hwnd, WM_CTLCOLORSTATIC, Cls_OnCtlColor);
 		HANDLE_DLG_MSG(hwnd, WM_NOTIFY, Cls_OnNotify);
+		HANDLE_DLG_MSG(hwnd, WM_DESTROY, Cls_OnDestroy);
+
+	case WM_APP_GENERATE_PASSWORD: {
+		BSTR* pbstr = ( BSTR* ) lParam;
+		*pbstr = GeneratePassword();
+		return SetDlgMsgResult(hwnd, message, 0);
+	}
+
+	case WM_APP_GET_PROPERTY: {
+
+		BSTR property_name = ( BSTR ) wParam;
+		BSTR* p_property_value = ( BSTR* ) lParam;
+
+		HRESULT hr = IPasswordGenerator_GetProperty(g_p_pswdgen, property_name, p_property_value);
+
+		return SetDlgMsgResult(hwnd, message, hr == S_OK ? 0 : 1);
+	}
+
+
+	case WM_APP_SET_PROPERTY: {
+
+		BSTR property_name = ( BSTR ) wParam;
+		BSTR property_value = ( BSTR ) lParam;
+
+		HRESULT hr;
+		VARIANT_BOOL ret;
+		hr = IPasswordGenerator_SetProperty(g_p_pswdgen, property_name, property_value, &ret);
+
+		if( S_OK == hr ) {
+
+			if( wcscmp(property_name, L"c_lower_case") == 0 )
+				Edit_SetText(g_hEditLower, property_value);
+			else if( wcscmp(property_name, L"c_upper_case") == 0 )
+				Edit_SetText(g_hEditUpper, property_value);
+			else if( wcscmp(property_name, L"c_digits") == 0 )
+				Edit_SetText(g_hEditDigits, property_value);
+			else if( wcscmp(property_name, L"c_symbols") == 0 )
+				Edit_SetText(g_hEditSymbols, property_value);
+			else if( wcscmp(property_name, L"w_spaces") == 0 )
+				Edit_SetText(g_hEditSpaces, property_value);
+
+			return SetDlgMsgResult(hwnd, message, ret == VARIANT_TRUE ? 0 : 1);
+		}
+
+	}
 
 	}
 
@@ -40,22 +145,52 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 	
 	g_hInstance = hInstance;
 
+	HRESULT hr = OleInitialize(NULL);
+
+	hr = CoCreateInstance(&CLSID_PasswordGenerator, NULL, CLSCTX_INPROC_SERVER,
+		&IID_IPasswordGenerator, &g_p_pswdgen);
+	if( S_OK != hr )	return 1;
+	
 	INITCOMMONCONTROLSEX icex = {sizeof(icex), ICC_UPDOWN_CLASS};
 
 	InitCommonControls();
 
-	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DialogProc);
+	HWND hwnd = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DialogProc);
+	g_hwndMain = hwnd;
+
+	void* papp = CreateApplication(hwnd, g_p_pswdgen);
+
+	UpdateWindow(hwnd);
+
+	if( wcscmp(szCmdLine, L"-Embedding") == 0 ) {
+
+		ShowWindow(hwnd, SW_HIDE);
+
+	} else {
+		
+		ShowWindow(hwnd, iShowCmd);
+	}
+
+	MSG msg;
+	while( GetMessage(&msg, NULL, 0, 0) ) {
+		
+		if( !IsDialogMessage(hwnd, &msg) ) {
+
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		
+		}
+
+	}
+
+	IPasswordGenerator_Release(g_p_pswdgen);
+
+	DeleteApplication(papp);
 
 	return 0;
 }
 
-BOOL Cls_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam) {
-
-	//INPUT	keyInputs[2] = {
-	//							{INPUT_KEYBOARD, 0},
-	//							{INPUT_KEYBOARD, 0}
-	//						};
-						
+BOOL Cls_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam) {				
 
 	g_hCheckLower = GetDlgItem(hwnd, IDC_CHECK_LOWER);
 	g_hCheckUpper = GetDlgItem(hwnd, IDC_CHECK_UPPER);
@@ -99,10 +234,17 @@ BOOL Cls_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam) {
 	SetWindowLongPtr(g_hCheckSpaces, GWLP_USERDATA, (LONG_PTR) g_hEditSpaces);
 	SetWindowLongPtr(g_hCheckSymbols, GWLP_USERDATA, (LONG_PTR) g_hEditSymbols);
 
-	//	Show keyboard shortcuts automatically
-	//keyInputs[0].ki.wVk = VK_MENU;
-	//keyInputs[1].ki.wVk = VK_MENU;	keyInputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
-	//SendInput(2, keyInputs, sizeof(INPUT));
+	g_bstr_lower	= SysAllocString(L"c_lower_case");
+	g_bstr_upper	= SysAllocString(L"c_upper_case");
+	g_bstr_digits	= SysAllocString(L"c_digits");
+	g_bstr_symbols	= SysAllocString(L"c_symbols");
+	g_bstr_spaces	= SysAllocString(L"c_spaces");
+
+	g_bstr_cLower = NULL;
+	g_bstr_cUpper = NULL;
+	g_bstr_cDigits = NULL;
+	g_bstr_cSymbols = NULL;
+	g_bstr_cSpaces = NULL;
 
 	return TRUE;
 }
@@ -118,7 +260,7 @@ void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
 
 	case IDCANCEL:
 
-		EndDialog(hwnd, 0);
+		DestroyWindow(hwnd);
 		return;
 
 	case IDC_CHECK_DIGITS:
@@ -133,44 +275,12 @@ void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
 
 		return;
 
-	case IDC_BUTTON_GENERATE:
+	case IDC_BUTTON_GENERATE: {
+		
+		BSTR password = GeneratePassword();
+		SysFreeString(password);
 
-		/*	Prepare count buffer */
-		for( i = IDC_CHECK_LOWER, j = 0; i <= IDC_CHECK_SPACES; ++i, ++j ) {
-
-			HWND	hwndCheck = GetDlgItem(hwnd, i);
-
-			if( Button_GetCheck(hwndCheck) ) {
-
-				HWND	hwndEdit = (HWND) GetWindowLongPtr(hwndCheck, GWLP_USERDATA);
-				WCHAR	szNum[3] = {0};
-				int		count;
-
-				Edit_GetText(hwndEdit, szNum, sizeof(szNum) / sizeof(szNum[0]));
-				count = _wtoi(szNum);
-
-				Counts[j] = count;
-			}
-		}
-
-		if( GeneratePassword((int *) Counts, &szPassword, &cchPassword) ) {
-			HWND	hwndEdit;
-
-			hwndEdit = GetDlgItem(hwnd, IDC_EDIT_PASSWORD);
-
-			Edit_SetText(hwndEdit, szPassword);
-
-			if( Button_GetCheck(GetDlgItem(hwnd, IDC_CHECK_COPY)) ) {
-				Edit_SetSel(hwndEdit, 0, cchPassword);
-				SendMessage(hwndEdit, WM_COPY, 0, 0);
-			}
-
-			HeapFree(GetProcessHeap(), 0, szPassword);
-
-		}
-
-		return;
-
+		return; }
 	}
 
 }
@@ -207,4 +317,9 @@ LRESULT Cls_OnNotify(HWND hwnd, int id, NMHDR * pNMHDR) {
 	}
 
 	return 0;
+}
+
+void Cls_OnDestroy(HWND hwnd) {
+
+	PostQuitMessage(0);
 }

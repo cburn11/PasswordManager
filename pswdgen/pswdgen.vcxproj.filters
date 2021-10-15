@@ -15,24 +15,27 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\generatepassword.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\pswdgen.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rndnum.c">
+    <ClCompile Include="..\pswdgen_idl\generated\pswdgen_i.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ApplicationImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\iunknownmacros.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\pswdgen.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rndnum.h">
+    <ClInclude Include="src\ApplicationImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pswdgen_Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
