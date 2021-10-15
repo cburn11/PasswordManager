@@ -6,9 +6,9 @@ app.Visible = True
 
 app.SetProperty "c_lower_case", "12"
 
-dim clower
-clower = app.GetProperty("c_lower_case")
+dim password
+password = app.GeneratePassword()
 
-MsgBox  clower
+MsgBox  password
 
 app.Quit()
