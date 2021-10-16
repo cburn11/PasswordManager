@@ -278,9 +278,49 @@ void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
 	case IDC_BUTTON_GENERATE: {
 		
 		BSTR password = GeneratePassword();
+		void* p_v_app = GetWindowLongPtr(hwnd, GWLP_USERDATA);
+		TriggerPasswordGenerated(p_v_app, password);
 		SysFreeString(password);
 
 		return; }
+
+	case IDC_EDIT_LOWER:
+	case IDC_EDIT_UPPER:
+	case IDC_EDIT_DIGITS:
+	case IDC_EDIT_SYMBOLS:
+	case IDC_EDIT_SPACES:
+
+		if( codeNotify == EN_CHANGE ) {
+			
+			BSTR value = NULL;
+			ReadEditTextIntoBSTR(hwndCtl, &value);
+			void* p_v_app = GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
+			BSTR name = NULL;
+			switch( id ) {
+			case IDC_EDIT_LOWER:
+				name = SysAllocString(L"c_lower_case");
+				break;
+			case IDC_EDIT_UPPER:
+				name = SysAllocString(L"c_upper_case");
+				break;
+			case IDC_EDIT_DIGITS:
+				name = SysAllocString(L"c_digits");
+				break;
+			case IDC_EDIT_SYMBOLS:
+				name = SysAllocString(L"c_symbols");
+				break;
+			case IDC_EDIT_SPACES:
+				name = SysAllocString(L"c_spaces");
+			}
+
+			TriggerPropertyChange(p_v_app, name, value);
+
+			SysFreeString(name);
+			SysFreeString(value);
+		}
+
+		break;
 	}
 
 }
@@ -314,12 +354,17 @@ LRESULT Cls_OnNotify(HWND hwnd, int id, NMHDR * pNMHDR) {
 
 		break;		
 
+
 	}
 
 	return 0;
 }
 
 void Cls_OnDestroy(HWND hwnd) {
+
+	void* p_v_app = GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
+	TriggerQuit(p_v_app);
 
 	PostQuitMessage(0);
 }

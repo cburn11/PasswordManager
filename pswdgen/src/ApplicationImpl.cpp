@@ -115,6 +115,7 @@ public:
 				papp->setHwnd(m_hwnd);
 				papp->setPasswordGenerator(m_p_pwgen);
 				hr = papp->QueryInterface(riid, ppvObject);
+				SetWindowLongPtr(m_hwnd, GWLP_USERDATA, ( LONG_PTR ) papp);
 				return hr;
 			}
 		}
@@ -152,5 +153,208 @@ extern "C" void DeleteApplication(void* papp) {
 
 	if( papp == &g_cf ) {
 		hr = CoRevokeClassObject(g_cf.m_dwRegister);
+	}
+}
+
+HRESULT AutoInvoke(REFGUID _LIB, REFIID _IID, int type, VARIANT* pvResult, IDispatch* pDispIn,
+	OLECHAR* szName, int cArgs, ...) {
+
+	HRESULT			hr;
+
+	DISPPARAMS		dispparamsAuto;
+	EXCEPINFO		excepinfoAuto;
+	UINT			uArgErrAuto;
+
+	VARIANT* pvAuto = NULL;
+
+	DISPID			dispidSave = DISPID_PROPERTYPUT;
+	DISPID			dispidAuto;
+
+	va_list			marker = nullptr;
+
+	LPTYPELIB		pTypeLib = nullptr;
+	hr = LoadRegTypeLib(_LIB, 1, 0, 0, &pTypeLib);
+
+	ITypeInfo* pTypeInfo = nullptr;
+	hr = pTypeLib->GetTypeInfoOfGuid(_IID, &pTypeInfo);
+
+	VARIANT* pvar = NULL;
+	int			i;
+
+	if( cArgs > 0 ) {
+
+		va_start(marker, cArgs);
+
+		pvAuto = ( VARIANT* ) malloc(sizeof(VARIANT) * cArgs);
+
+		if( !pvAuto ) {
+
+			hr = E_OUTOFMEMORY;
+
+			goto CLEANUP;
+
+		}
+
+	}
+
+	for( i = 0; i < cArgs; ++i ) {
+
+		pvar = va_arg(marker, VARIANT*);
+
+		memcpy((pvAuto + i), pvar, sizeof(VARIANT));
+
+	}
+
+	hr = DispGetIDsOfNames(pTypeInfo, &szName, 1, &dispidAuto);
+
+	if( FAILED(hr) ) {
+
+		pvResult = NULL;
+
+		goto CLEANUP;
+
+	}
+
+	dispparamsAuto.cArgs = cArgs;
+	dispparamsAuto.cNamedArgs = 0;
+	dispparamsAuto.rgvarg = pvAuto;
+	dispparamsAuto.rgdispidNamedArgs = NULL;
+
+	if( type & DISPATCH_PROPERTYPUT ) {
+
+		dispparamsAuto.cNamedArgs = 1;
+		dispparamsAuto.rgdispidNamedArgs = &dispidSave;
+
+	}
+
+	hr = pDispIn->Invoke(dispidAuto, IID_NULL, LOCALE_SYSTEM_DEFAULT, type,
+		&dispparamsAuto, pvResult, &excepinfoAuto, &uArgErrAuto);
+
+	va_end(marker);
+
+CLEANUP:
+
+	if( pvAuto )	free(pvAuto);
+	if( pTypeInfo )	pTypeInfo->Release();
+	if( pTypeLib )	pTypeLib->Release();
+
+	return hr;
+}
+
+extern "C" void TriggerQuit(void* p_v_app) {
+
+	if( !p_v_app )	return;
+
+	CComObject<pswdgen_Application>* p_app = (CComObject<pswdgen_Application> *) p_v_app;
+
+	HRESULT hr;
+
+	IConnectionPoint* p_cp;
+	hr = p_app->FindConnectionPoint(__uuidof(IApplicationEvents), &p_cp);
+
+	if( S_OK == hr ) {
+
+		IEnumConnections* p_enums;
+
+		hr = p_cp->EnumConnections(&p_enums);
+		if( S_OK == hr ) {
+
+			CONNECTDATA cd{ 0 };
+			while( S_OK == p_enums->Next(1, &cd, nullptr) ) {
+				IDispatch* p_disp;
+				hr = cd.pUnk->QueryInterface(IID_PPV_ARGS(&p_disp));
+				if( S_OK == hr ) {
+					VARIANT varResult;
+					hr = AutoInvoke(LIBID_PasswordGenerator, IID_IApplicationEvents,
+						DISPATCH_METHOD, &varResult, p_disp, L"OnQuit", 0);
+
+					p_disp->Release();
+				}
+			}
+
+			p_enums->Release();
+		}
+
+		p_cp->Release();
+	}
+}
+
+extern "C" void TriggerPropertyChange(void* p_v_app, BSTR name, BSTR value) {
+
+	if( !p_v_app )	return;
+
+	CComObject<pswdgen_Application>* p_app = (CComObject<pswdgen_Application> *) p_v_app;
+
+	HRESULT hr;
+
+	IConnectionPoint* p_cp;
+	hr = p_app->FindConnectionPoint(__uuidof(IApplicationEvents), &p_cp);
+
+	if( S_OK == hr ) {
+
+		IEnumConnections* p_enums;
+
+		hr = p_cp->EnumConnections(&p_enums);
+		if( S_OK == hr ) {
+
+			CONNECTDATA cd{ 0 };
+			while( S_OK == p_enums->Next(1, &cd, nullptr) ) {
+				IDispatch* p_disp;
+				hr = cd.pUnk->QueryInterface(IID_PPV_ARGS(&p_disp));
+				if( S_OK == hr ) {
+					VARIANT varResult;
+					VARIANT varName, varValue;
+					varName.vt = VT_BSTR;	varName.bstrVal = name;
+					varValue.vt = VT_BSTR;	varValue.bstrVal = value;
+					hr = AutoInvoke(LIBID_PasswordGenerator, IID_IApplicationEvents,
+						DISPATCH_METHOD, &varResult, p_disp, L"PropertyChange", 2, &varValue, &varName);
+
+					p_disp->Release();
+				}
+			}
+
+			p_enums->Release();
+		}
+
+		p_cp->Release();
+	}
+}
+
+void TriggerPasswordGenerated(void* p_v_app, BSTR password) {
+	if( !p_v_app )	return;
+
+	CComObject<pswdgen_Application>* p_app = (CComObject<pswdgen_Application> *) p_v_app;
+
+	HRESULT hr;
+
+	IConnectionPoint* p_cp;
+	hr = p_app->FindConnectionPoint(__uuidof(IApplicationEvents), &p_cp);
+
+	if( S_OK == hr ) {
+
+		IEnumConnections* p_enums;
+
+		hr = p_cp->EnumConnections(&p_enums);
+		if( S_OK == hr ) {
+
+			CONNECTDATA cd{ 0 };
+			while( S_OK == p_enums->Next(1, &cd, nullptr) ) {
+				IDispatch* p_disp;
+				hr = cd.pUnk->QueryInterface(IID_PPV_ARGS(&p_disp));
+				if( S_OK == hr ) {
+					VARIANT varResult;
+					VARIANT varPassword;
+					varPassword.vt = VT_BSTR;	varPassword.bstrVal = password;
+					hr = AutoInvoke(LIBID_PasswordGenerator, IID_IApplicationEvents,
+						DISPATCH_METHOD, &varResult, p_disp, L"PasswordGenerated", 1, &varPassword);
+
+					p_disp->Release();
+				}
+			}
+
+			p_enums->Release();
+		}
+
+		p_cp->Release();
 	}
 }

@@ -54,6 +54,13 @@ typedef interface IApplication IApplication;
 #endif 	/* __IApplication_FWD_DEFINED__ */
 
 
+#ifndef __IApplicationEvents_FWD_DEFINED__
+#define __IApplicationEvents_FWD_DEFINED__
+typedef interface IApplicationEvents IApplicationEvents;
+
+#endif 	/* __IApplicationEvents_FWD_DEFINED__ */
+
+
 #ifndef __PasswordGenerator_FWD_DEFINED__
 #define __PasswordGenerator_FWD_DEFINED__
 
@@ -93,6 +100,7 @@ extern "C"{
 
 /* library PasswordGenerator */
 /* [version][uuid] */ 
+
 
 
 
@@ -437,6 +445,156 @@ EXTERN_C const IID IID_IApplication;
 
 
 #endif 	/* __IApplication_INTERFACE_DEFINED__ */
+
+
+#ifndef __IApplicationEvents_INTERFACE_DEFINED__
+#define __IApplicationEvents_INTERFACE_DEFINED__
+
+/* interface IApplicationEvents */
+/* [object][oleautomation][nonextensible][dual][uuid] */ 
+
+
+EXTERN_C const IID IID_IApplicationEvents;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("A3A77E1B-E97E-4F28-8A6A-F4EE7D992E4F")
+    IApplicationEvents : public IDispatch
+    {
+    public:
+        virtual /* [id] */ HRESULT STDMETHODCALLTYPE PropertyChange( 
+            /* [in] */ BSTR key,
+            /* [in] */ BSTR value) = 0;
+        
+        virtual /* [id] */ HRESULT STDMETHODCALLTYPE PasswordGenerated( 
+            /* [in] */ BSTR password) = 0;
+        
+        virtual /* [id] */ HRESULT STDMETHODCALLTYPE OnQuit( void) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IApplicationEventsVtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IApplicationEvents * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IApplicationEvents * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IApplicationEvents * This);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfoCount )( 
+            IApplicationEvents * This,
+            /* [out] */ UINT *pctinfo);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfo )( 
+            IApplicationEvents * This,
+            /* [in] */ UINT iTInfo,
+            /* [in] */ LCID lcid,
+            /* [out] */ ITypeInfo **ppTInfo);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetIDsOfNames )( 
+            IApplicationEvents * This,
+            /* [in] */ REFIID riid,
+            /* [size_is][in] */ LPOLESTR *rgszNames,
+            /* [range][in] */ UINT cNames,
+            /* [in] */ LCID lcid,
+            /* [size_is][out] */ DISPID *rgDispId);
+        
+        /* [local] */ HRESULT ( STDMETHODCALLTYPE *Invoke )( 
+            IApplicationEvents * This,
+            /* [annotation][in] */ 
+            _In_  DISPID dispIdMember,
+            /* [annotation][in] */ 
+            _In_  REFIID riid,
+            /* [annotation][in] */ 
+            _In_  LCID lcid,
+            /* [annotation][in] */ 
+            _In_  WORD wFlags,
+            /* [annotation][out][in] */ 
+            _In_  DISPPARAMS *pDispParams,
+            /* [annotation][out] */ 
+            _Out_opt_  VARIANT *pVarResult,
+            /* [annotation][out] */ 
+            _Out_opt_  EXCEPINFO *pExcepInfo,
+            /* [annotation][out] */ 
+            _Out_opt_  UINT *puArgErr);
+        
+        /* [id] */ HRESULT ( STDMETHODCALLTYPE *PropertyChange )( 
+            IApplicationEvents * This,
+            /* [in] */ BSTR key,
+            /* [in] */ BSTR value);
+        
+        /* [id] */ HRESULT ( STDMETHODCALLTYPE *PasswordGenerated )( 
+            IApplicationEvents * This,
+            /* [in] */ BSTR password);
+        
+        /* [id] */ HRESULT ( STDMETHODCALLTYPE *OnQuit )( 
+            IApplicationEvents * This);
+        
+        END_INTERFACE
+    } IApplicationEventsVtbl;
+
+    interface IApplicationEvents
+    {
+        CONST_VTBL struct IApplicationEventsVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IApplicationEvents_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IApplicationEvents_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IApplicationEvents_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IApplicationEvents_GetTypeInfoCount(This,pctinfo)	\
+    ( (This)->lpVtbl -> GetTypeInfoCount(This,pctinfo) ) 
+
+#define IApplicationEvents_GetTypeInfo(This,iTInfo,lcid,ppTInfo)	\
+    ( (This)->lpVtbl -> GetTypeInfo(This,iTInfo,lcid,ppTInfo) ) 
+
+#define IApplicationEvents_GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId)	\
+    ( (This)->lpVtbl -> GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId) ) 
+
+#define IApplicationEvents_Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr)	\
+    ( (This)->lpVtbl -> Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr) ) 
+
+
+#define IApplicationEvents_PropertyChange(This,key,value)	\
+    ( (This)->lpVtbl -> PropertyChange(This,key,value) ) 
+
+#define IApplicationEvents_PasswordGenerated(This,password)	\
+    ( (This)->lpVtbl -> PasswordGenerated(This,password) ) 
+
+#define IApplicationEvents_OnQuit(This)	\
+    ( (This)->lpVtbl -> OnQuit(This) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __IApplicationEvents_INTERFACE_DEFINED__ */
 
 
 EXTERN_C const CLSID CLSID_PasswordGenerator;

@@ -14,6 +14,12 @@ extern "C" {
 
 	void DeleteApplication(void* papp);
 
+	void TriggerQuit(void* p_v_app);
+
+	void TriggerPropertyChange(void* p_v_app, BSTR name, BSTR value);
+
+	void TriggerPasswordGenerated(void* p_v_app, BSTR password);
+
 #ifdef __cplusplus
 }
 #endif

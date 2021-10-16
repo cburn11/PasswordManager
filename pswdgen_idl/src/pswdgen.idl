@@ -12,7 +12,9 @@ library PasswordGenerator {
 	importlib( "stdole2.tlb" );		
 
 	interface IPasswordGenerator;
+	
 	interface IApplication;
+	interface IApplicationEvents;
 
 	[uuid( 7A9E1877-913A-4E62-A5D5-560654B8CA5F ), dual, nonextensible, oleautomation]
 	interface IPasswordGenerator : IDispatch {
@@ -48,6 +50,19 @@ library PasswordGenerator {
 		HRESULT GeneratePassword([out, retval] BSTR* password);
 	};
 
+	[uuid(A3A77E1B-E97E-4F28-8A6A-F4EE7D992E4F), dual, nonextensible, oleautomation]
+	interface IApplicationEvents : IDispatch {
+
+		[id(0x30000010)]
+		HRESULT PropertyChange([in] BSTR key, [in] BSTR value);
+		
+		[id(0x30000020)]
+		HRESULT PasswordGenerated([in] BSTR password);
+
+		[id(0x30000030)]
+		HRESULT OnQuit(void);
+	};
+
 	[uuid( 034042E4-0516-4AE3-846D-8BEB3C1798AF )]
 	coclass PasswordGenerator {
 		[default] interface IPasswordGenerator;
@@ -56,5 +71,6 @@ library PasswordGenerator {
 	[uuid(F8F010D6-62DD-405C-AF04-42DD347760AB)]
 	coclass Application {
 		[default] interface IApplication;
+		[default, source] interface IApplicationEvents;
 	};
 };

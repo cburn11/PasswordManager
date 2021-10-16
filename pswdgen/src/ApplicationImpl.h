@@ -9,7 +9,9 @@
 
 class pswdgen_Application :
 	public CComObjectRootEx<CComSingleThreadModel>,
-	public IDispatchImpl<IApplication, &IID_IApplication, &LIBID_PasswordGenerator, 1, 0> {
+	public IDispatchImpl<IApplication, &IID_IApplication, &LIBID_PasswordGenerator, 1, 0>,
+	public IConnectionPointContainerImpl<pswdgen_Application>,
+	public IConnectionPointImpl<pswdgen_Application, &IID_IApplicationEvents> {
 
 	HWND m_hwndMainWIndow;
 
@@ -24,7 +26,12 @@ public:
 	BEGIN_COM_MAP(pswdgen_Application)
 		COM_INTERFACE_ENTRY(IDispatch)
 		COM_INTERFACE_ENTRY(IApplication)
+		COM_INTERFACE_ENTRY(IConnectionPointContainer)
 	END_COM_MAP()
+
+	BEGIN_CONNECTION_POINT_MAP(pswdgen_Application)
+		CONNECTION_POINT_ENTRY(IID_IApplicationEvents)
+	END_CONNECTION_POINT_MAP()
 
 	STDMETHODIMP get_Visible(VARIANT_BOOL* pvis);
 	STDMETHODIMP put_Visible(VARIANT_BOOL vis);
