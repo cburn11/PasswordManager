@@ -2,10 +2,13 @@
 
 #include "ApplicationImpl.h"
 #include "pswdgen_h.h"
-
+#include "resource.h"
 #include "pswdgen_Application.h"
-
 #include "iunknownmacros.h"
+
+extern "C" INT_PTR CALLBACK DialogProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+extern "C" HINSTANCE g_hInstance;
+extern "C" HWND g_hwndMain;
 
 STDMETHODIMP pswdgen_Application::get_Visible(VARIANT_BOOL* pvis) {
 
@@ -131,7 +134,7 @@ public:
 
 Application_ClassFactory g_cf{};
 
-extern "C" void* CreateApplication(HWND hwnd, IPasswordGenerator * p_pwgen) {
+extern "C" void* CreateApplication(IPasswordGenerator * p_pwgen) {
 
 	HRESULT hr;
 
@@ -139,10 +142,10 @@ extern "C" void* CreateApplication(HWND hwnd, IPasswordGenerator * p_pwgen) {
 	IUnknown * punk;
 	hr = g_cf.QueryInterface(IID_PPV_ARGS(&punk));
 		
-	g_cf.m_hwnd = hwnd;
+	g_cf.m_hwnd = g_hwndMain;
 	g_cf.m_p_pwgen = p_pwgen;
 
-	hr = CoRegisterClassObject(CLSID_Application, punk, CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE, &g_cf.m_dwRegister);	
+	hr = CoRegisterClassObject(CLSID_Application, punk, CLSCTX_LOCAL_SERVER, REGCLS_SINGLEUSE, &g_cf.m_dwRegister);	
 
 	return &g_cf;
 }

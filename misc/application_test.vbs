@@ -25,16 +25,11 @@ dim app
 dim keepSleeping
 
 set app = Wscript.CreateObject("PasswordGenerator.Application", "IApplicationEvents_")
-'set app = Wscript.CreateObject("PasswordGenerator.Application")
-
 
 app.Visible = True
 
-app.SetProperty "c_lower_case", "12"
-
-'app.Quit()
-
-
+app.SetProperty "Mode", "Settings"
+app.SetProperty "Mode", "Regular"
 
 keepSleeping=true
 while keepSleeping

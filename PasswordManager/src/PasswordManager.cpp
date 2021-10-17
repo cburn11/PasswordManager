@@ -13,6 +13,7 @@
 #include "Tools.h"
 #include "PasswordManager.h"
 #include "DropTargetImpl.h"
+#include "eventsink.h"
 
 #define ComCtl6
 #include "CommonHeaders.h"
@@ -51,6 +52,8 @@ LONG_PTR RegisterMainWindow() {
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdLine, int iShowCmd) {
 	
+	HRESULT hr = OleInitialize(NULL);
+
 	HMENU	hmenuMain = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU1));
 	HACCEL	haccelerators = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCELERATOR1));
 
@@ -66,6 +69,35 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 
 	auto fMaximized = pUserData->pSettings->getDWORD(L"fMaximized");
 
+	hr = pUserData->p_pswdgen_Application.CoCreateInstance(CLSID_Application, nullptr, CLSCTX_LOCAL_SERVER);
+	if( S_OK == hr ) {
+		
+		CComBSTR bstr_c_lower_case{ L"c_lower_case" };
+		CComBSTR bstr_c_upper_case{ L"c_upper_case" };
+		CComBSTR bstr_c_digits{ L"c_digits" };
+		CComBSTR bstr_c_symbols{ L"c_symbols" };
+		CComBSTR bstr_c_spaces{ L"c_spaces" };
+
+		auto c_lower_case = pUserData->pSettings->getDWORD(bstr_c_lower_case);
+		auto c_upper_case = pUserData->pSettings->getDWORD(bstr_c_upper_case);
+		auto c_digits = pUserData->pSettings->getDWORD(bstr_c_digits);
+		auto c_symbols = pUserData->pSettings->getDWORD(bstr_c_symbols);
+		auto c_spaces = pUserData->pSettings->getDWORD(bstr_c_spaces);
+
+		CComBSTR bstr_c_lower_case_value{std::to_wstring(c_lower_case).c_str()};
+		CComBSTR bstr_c_upper_case_value{ std::to_wstring(c_upper_case).c_str() };
+		CComBSTR bstr_c_digits_value{ std::to_wstring(c_digits).c_str() };
+		CComBSTR bstr_c_symbols_value{ std::to_wstring(c_symbols).c_str() };
+		CComBSTR bstr_c_spaces_value{ std::to_wstring(c_spaces).c_str() };
+
+		VARIANT_BOOL ret;
+		hr = pUserData->p_pswdgen_Application->SetProperty(bstr_c_lower_case, bstr_c_lower_case_value, &ret);
+		hr = pUserData->p_pswdgen_Application->SetProperty(bstr_c_upper_case, bstr_c_upper_case_value, &ret);
+		hr = pUserData->p_pswdgen_Application->SetProperty(bstr_c_digits, bstr_c_digits_value, &ret);
+		hr = pUserData->p_pswdgen_Application->SetProperty(bstr_c_symbols, bstr_c_symbols_value, &ret);
+		hr = pUserData->p_pswdgen_Application->SetProperty(bstr_c_spaces, bstr_c_spaces_value, &ret);
+	}
+
 	auto hwnd = CreateWindow(L"ListBoxCustom", L"Password Manager",
 		WS_OVERLAPPEDWINDOW | WS_VSCROLL | WS_HSCROLL |LBS_USETABSTOPS,
 		x, y, width, height,
@@ -75,8 +107,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 		return error;
 	}
 
-	CComPtr<IDropTarget> pDropTarget{ new DropTarget(hwnd) };	
-	auto hr = RegisterDragDrop(hwnd, pDropTarget.p);
+	CComPtr<IDropTarget> pDropTarget{ new DropTarget(hwnd) };
+	hr = RegisterDragDrop(hwnd, pDropTarget.p);
+
+	IApplicationEvents* p_events = (IApplicationEvents *) new ApplicationEventsImpl_ATL{ hwnd };
+	DWORD cookie = 0;
+	if( p_events ) {
+		IUnknown* punk;
+		hr = p_events->QueryInterface(IID_PPV_ARGS(&punk));
+		hr = pUserData->p_pswdgen_Application.Advise(punk, IID_IApplicationEvents, &cookie);
+	}
 
 	if( wcslen(szCmdLine) > 0 )
 		ProcessCommandLine(hwnd, szCmdLine);
@@ -94,6 +134,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 			DispatchMessage(&msg);
 		}
 	}
+
+	if( S_OK == hr )	pUserData->p_pswdgen_Application->Quit();
 
 	delete pUserData;
 
@@ -200,7 +242,9 @@ BOOL Cls_OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct) {
 	g_hwndApp = hwnd;
 
 	pUserData->hmenuContext = CreateContextMenu(hwnd);
-	
+
+	PopulateSettingsMenu(hwnd);
+		
 	return TRUE;
 }
 
@@ -334,6 +378,14 @@ void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
 		case ID_ACC_CLONE_ACCOUNT:
 		case ID_ACTIONS_CLONEENTRY:
 			CloneEntry(hwnd);
+			break;
+
+		case ID_SETTINGS_PSWDGEN:
+			ShowPasswordGeneratorSettings(hwnd);
+			break;
+
+		case ID_SETTINGS_PSWDGEN_USE:
+			ToggleUsePasswordGenerator(hwnd);
 			break;
 	}
 

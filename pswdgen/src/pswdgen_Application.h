@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-	void* CreateApplication(HWND hwnd, IPasswordGenerator * p_pwgen);
+	void* CreateApplication(IPasswordGenerator * p_pwgen);
 
 	void DeleteApplication(void* papp);
 

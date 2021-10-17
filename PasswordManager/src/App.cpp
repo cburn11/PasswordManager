@@ -6,6 +6,8 @@
 //#include <MsHTML.h>
 #include <ShlObj.h>
 
+#include <atlcomcli.h>
+
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -1031,4 +1033,74 @@ void QueryOpenFile(const wchar_t* szPath, bool* fRet) {
 
 			*fRet = true;		
 	}
+}
+
+void PopulateSettingsMenu(HWND hwnd) {
+	
+	UserData* pUserData = ( UserData* ) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
+	HMENU hFileMenu = GetSubMenu(GetMenu(hwnd), 0);
+	HMENU hSettingsMenu = GetSubMenu(hFileMenu, 7);
+	
+	MENUITEMINFO mii{ sizeof(MENUITEMINFO), 0 };
+	mii.fMask = MIIM_STATE;
+
+	if( !pUserData->p_pswdgen_Application ) {
+
+		mii.fState = MFS_GRAYED;
+
+		auto ret = SetMenuItemInfo(hSettingsMenu, 2, TRUE, &mii);
+		ret = SetMenuItemInfo(hSettingsMenu, 3, TRUE, &mii);
+
+		return;
+	}	
+	
+	auto fUsePswdGen = pUserData->pSettings->getDWORD(L"fUsePasswordGenerator");
+	if( fUsePswdGen ) {
+		mii.fState = MFS_CHECKED;
+		auto ret = SetMenuItemInfo(hSettingsMenu, 2, TRUE, &mii);
+		mii.fState = MFS_ENABLED;
+		ret = SetMenuItemInfo(hSettingsMenu, 3, TRUE, &mii);
+	} else {
+		mii.fState = MFS_ENABLED;
+		auto ret = SetMenuItemInfo(hSettingsMenu, 2, TRUE, &mii);
+		mii.fState = MFS_GRAYED;
+		ret = SetMenuItemInfo(hSettingsMenu, 3, TRUE, &mii);
+	}
+}
+
+void ToggleUsePasswordGenerator(HWND hwnd) {
+
+	UserData* pUserData = ( UserData* ) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
+	HMENU hFileMenu = GetSubMenu(GetMenu(hwnd), 0);
+	HMENU hSettingsMenu = GetSubMenu(hFileMenu, 7);
+
+	MENUITEMINFO mii{ sizeof(MENUITEMINFO), 0 };
+	mii.fMask = MIIM_STATE;
+
+	auto ret = GetMenuItemInfo(hSettingsMenu, 2, TRUE, &mii);
+	if( mii.fState & MFS_CHECKED ) {
+		pUserData->pSettings->setDWORD(L"fUsePasswordGenerator", 0);
+	} else {
+		pUserData->pSettings->setDWORD(L"fUsePasswordGenerator", 1);
+	}
+
+	PopulateSettingsMenu(hwnd);
+}
+
+void ShowPasswordGeneratorSettings(HWND hwnd) {
+
+	UserData* pUserData = ( UserData* ) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
+	IApplication* p_app = pUserData->p_pswdgen_Application.p;
+
+	CComBSTR bstrName{ L"Mode" };
+	CComBSTR bstrValue{ L"Settings" };
+
+	VARIANT_BOOL ret;
+
+	HRESULT hr = p_app->SetProperty(bstrName, bstrValue, &ret);
+
+	hr = p_app->put_Visible(VARIANT_TRUE);
 }
