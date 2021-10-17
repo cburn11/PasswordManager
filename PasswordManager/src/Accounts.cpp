@@ -298,10 +298,59 @@ bool Accounts::LoadFromXml(const WCHAR * szFilename) {
 
 	if( SUCCEEDED(hr) && result == VARIANT_TRUE ) {
 
-
 		CComPtr<IXMLDOMElement> pRoot;
 		hr = m_pDoc->get_documentElement(&pRoot);
 		if( SUCCEEDED(hr) && pRoot ) {
+
+			// Load contact info
+
+			CComPtr<IXMLDOMNodeList> pChildren;
+			hr = pRoot->get_childNodes(&pChildren);
+			if( S_OK == hr ) {
+				long cChildren;
+				hr = pChildren->get_length(&cChildren);
+				for( long i = 0; i < cChildren; ++i ) {
+					
+					CComPtr<IXMLDOMNode> p_node_child;
+					hr = pChildren->get_item(i, &p_node_child);
+					
+					CComBSTR bstrName;
+					hr = p_node_child->get_nodeName(&bstrName);
+
+					if( wcscmp(bstrName, L"contact") == 0 ) {
+
+						CComPtr<IXMLDOMNodeList> p_contact_children;
+						hr = p_node_child->get_childNodes(&p_contact_children);
+
+						if( S_OK == hr ) {
+							long c_contact_children;
+							hr = p_contact_children->get_length(&c_contact_children);
+
+							m_p_contact_info = new Contact_Info{};
+
+							for( long j = 0; j < c_contact_children; ++j ) {
+								CComPtr<IXMLDOMNode> p_contact_node_child;
+								hr = p_contact_children->get_item(j, &p_contact_node_child);
+								CComBSTR bstrNodeName, bstrNodeText;
+								hr = p_contact_node_child->get_nodeName(&bstrNodeName);
+								hr = p_contact_node_child->get_text(&bstrNodeText);
+								
+								if( wcscmp(bstrNodeName, L"name") == 0 ) {
+									m_p_contact_info->m_name = bstrNodeText.m_str;
+								} else if( wcscmp(bstrNodeName, L"email") == 0 ) {
+									m_p_contact_info->m_email = bstrNodeText.m_str;
+								}
+							}
+							
+						}
+
+						break;
+					}
+
+				}
+			}
+
+			// Load accounts
 
 			CComPtr<IXMLDOMNodeList> pAccounts;
 			CComBSTR bstrTagName{ L"account" };
@@ -390,7 +439,14 @@ bool Accounts::SaveAccountsAs(const WCHAR * szFilename) {
 	};
 	for_each(std::begin(m_Accounts), std::end(m_Accounts), AccountToXml);
 
-	xml += L"</accounts></passwordmanager>";
+	xml += L"</accounts>";
+
+	if( m_p_contact_info ) {
+		xml += L"<contact><name>" + m_p_contact_info->m_name + L"</name><email>" +
+			m_p_contact_info->m_email + L"</email></contact>";
+	}
+
+	xml += L"</passwordmanager>";
 
 	CComPtr<IXMLDOMDocument> m_pDoc;
 	HRESULT hr = CoCreateInstance(CLSID_DOMDocument60, nullptr, CLSCTX_INPROC, IID_PPV_ARGS(&m_pDoc));

@@ -119,6 +119,13 @@ class Accounts {
 		inline const std::vector<const Account *> * GetFilteredAccounts() { return &m_FilteredAccounts; }
 	};
 
+	struct Contact_Info {
+		std::wstring m_name;
+		std::wstring m_email;
+	};
+
+	Contact_Info* m_p_contact_info = nullptr;
+
 	std::vector<Account>		m_Accounts;
 
 	std::unique_ptr<Account_Filter>		m_Filter;
@@ -200,4 +207,16 @@ public:
 	int SwapAccounts(int srcIndex, int dstIndex);
 
 	int MoveAccount(int srcIndex, int dstIndex);
+
+	std::wstring GetContactName() { if( !m_p_contact_info ) return L""; return m_p_contact_info->m_name; }
+	void SetContactName(const std::wstring& name) { 
+		if( !m_p_contact_info ) m_p_contact_info = new Contact_Info{}; m_p_contact_info->m_name = name;
+		m_fUnsavedChanges = true;
+	}
+
+	std::wstring GetContactEmail() { if( !m_p_contact_info ) return L""; return m_p_contact_info->m_email; }
+	void SetContactEmail(const std::wstring& email) {
+		if( !m_p_contact_info ) m_p_contact_info = new Contact_Info{}; m_p_contact_info->m_email = email;
+		m_fUnsavedChanges = true;
+	}
 };
