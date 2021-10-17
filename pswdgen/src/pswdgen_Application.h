@@ -10,9 +10,15 @@
 extern "C" {
 #endif
 
-	void* CreateApplication(HWND hwnd, IPasswordGenerator * p_pwgen);
+	void* CreateApplication(IPasswordGenerator * p_pwgen);
 
 	void DeleteApplication(void* papp);
+
+	void TriggerQuit(void* p_v_app);
+
+	void TriggerPropertyChange(void* p_v_app, BSTR name, BSTR value);
+
+	void TriggerPasswordGenerated(void* p_v_app, BSTR password);
 
 #ifdef __cplusplus
 }

@@ -18,6 +18,10 @@ public:
 
     HWND	m_window = nullptr;
 
+	BasicWindow() {
+		wc.lpfnWndProc = BasicWindow::WndProc;
+	}
+
     static T * GetThisFromHandle(HWND const window) {
         return reinterpret_cast<T *>(GetWindowLongPtr(window, GWLP_USERDATA));
     }

@@ -35,6 +35,43 @@ IPasswordGenerator* g_p_pswdgen = NULL;
 
 HINSTANCE g_hInstance;
 
+BOOL	g_fEmbedding = FALSE;
+BOOL	g_fSettingsMode = FALSE;
+
+void SetMode(BSTR mode) {
+
+	HWND hwndEdit = GetDlgItem(g_hwndMain, IDC_EDIT_PASSWORD);
+	HWND hwndCheck = GetDlgItem(g_hwndMain, IDC_CHECK_COPY);
+	HWND hwndButton = GetDlgItem(g_hwndMain, IDC_BUTTON_GENERATE);
+
+	if( wcscmp(mode, L"Settings") == 0 ) {
+		
+		EnableWindow(hwndEdit, FALSE);
+		SetWindowText(hwndEdit, L"Settings mode ...");
+
+		EnableWindow(hwndCheck, FALSE);
+		EnableWindow(hwndButton, FALSE);
+
+		g_fSettingsMode = TRUE;
+
+	} else if( wcscmp(mode, L"Regular") == 0 ) {
+
+		EnableWindow(hwndEdit, TRUE);
+		SetWindowText(hwndEdit, L"");
+
+		EnableWindow(hwndCheck, TRUE);
+		EnableWindow(hwndButton, TRUE);
+
+		g_fSettingsMode = FALSE;
+	}
+
+	void* p_v_app = GetWindowLongPtr(g_hwndMain, GWLP_USERDATA);
+	BSTR name = SysAllocString(L"Mode");
+	if( !name )	return;
+	TriggerPropertyChange(p_v_app, name, mode);
+	SysFreeString(name);
+}
+
 void ReadEditTextIntoBSTR(HWND hwndEdit, BSTR* pbstr) {
 
 	if( !pbstr )
@@ -74,7 +111,7 @@ BSTR GeneratePassword() {
 	hr = IPasswordGenerator_SetProperty(g_p_pswdgen, g_bstr_spaces, g_bstr_cSpaces, NULL);
 
 	hr = IPasswordGenerator_GeneratePassword(g_p_pswdgen, &password);
-	if( S_OK == hr ) {
+	if( S_OK == hr && ! g_fSettingsMode ) {
 		Edit_SetText(GetDlgItem(g_hwndMain, IDC_EDIT_PASSWORD), password);
 	}
 
@@ -112,6 +149,12 @@ INT_PTR CALLBACK DialogProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 
 		BSTR property_name = ( BSTR ) wParam;
 		BSTR property_value = ( BSTR ) lParam;
+
+		if( wcscmp(property_name, L"Mode") == 0 ) {
+			LRESULT res = 0;
+			SetMode(property_value);
+			return SetDlgMsgResult(hwnd, message, res);
+		}
 
 		HRESULT hr;
 		VARIANT_BOOL ret;
@@ -155,26 +198,26 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 
 	InitCommonControls();
 
-	HWND hwnd = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DialogProc);
+	void* papp = NULL;
+
+	HWND hwnd = CreateDialog(g_hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DialogProc);
 	g_hwndMain = hwnd;
-
-	void* papp = CreateApplication(hwnd, g_p_pswdgen);
-
-	UpdateWindow(hwnd);
 
 	if( wcscmp(szCmdLine, L"-Embedding") == 0 ) {
 
-		ShowWindow(hwnd, SW_HIDE);
+		g_fEmbedding = TRUE;
+		void* papp = CreateApplication(g_p_pswdgen);
 
 	} else {
-		
-		ShowWindow(hwnd, iShowCmd);
+
+		UpdateWindow(g_hwndMain);
+		ShowWindow(g_hwndMain, iShowCmd);
 	}
 
 	MSG msg;
 	while( GetMessage(&msg, NULL, 0, 0) ) {
 		
-		if( !IsDialogMessage(hwnd, &msg) ) {
+		if( !IsDialogMessage(g_hwndMain, &msg) ) {
 
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -185,7 +228,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, WCHAR * szCmdL
 
 	IPasswordGenerator_Release(g_p_pswdgen);
 
-	DeleteApplication(papp);
+	if( papp )	DeleteApplication(papp);
 
 	return 0;
 }
@@ -259,8 +302,11 @@ void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
 	switch( id ) {
 
 	case IDCANCEL:
+		if( g_fEmbedding == TRUE )
+			ShowWindow(hwnd, SW_HIDE);
+		else
+			DestroyWindow(hwnd);
 
-		DestroyWindow(hwnd);
 		return;
 
 	case IDC_CHECK_DIGITS:
@@ -278,9 +324,49 @@ void Cls_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
 	case IDC_BUTTON_GENERATE: {
 		
 		BSTR password = GeneratePassword();
+		void* p_v_app = GetWindowLongPtr(hwnd, GWLP_USERDATA);
+		TriggerPasswordGenerated(p_v_app, password);
 		SysFreeString(password);
 
 		return; }
+
+	case IDC_EDIT_LOWER:
+	case IDC_EDIT_UPPER:
+	case IDC_EDIT_DIGITS:
+	case IDC_EDIT_SYMBOLS:
+	case IDC_EDIT_SPACES:
+
+		if( codeNotify == EN_CHANGE ) {
+			
+			BSTR value = NULL;
+			ReadEditTextIntoBSTR(hwndCtl, &value);
+			void* p_v_app = GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
+			BSTR name = NULL;
+			switch( id ) {
+			case IDC_EDIT_LOWER:
+				name = SysAllocString(L"c_lower_case");
+				break;
+			case IDC_EDIT_UPPER:
+				name = SysAllocString(L"c_upper_case");
+				break;
+			case IDC_EDIT_DIGITS:
+				name = SysAllocString(L"c_digits");
+				break;
+			case IDC_EDIT_SYMBOLS:
+				name = SysAllocString(L"c_symbols");
+				break;
+			case IDC_EDIT_SPACES:
+				name = SysAllocString(L"c_spaces");
+			}
+
+			TriggerPropertyChange(p_v_app, name, value);
+
+			SysFreeString(name);
+			SysFreeString(value);
+		}
+
+		break;
 	}
 
 }
@@ -314,12 +400,17 @@ LRESULT Cls_OnNotify(HWND hwnd, int id, NMHDR * pNMHDR) {
 
 		break;		
 
+
 	}
 
 	return 0;
 }
 
 void Cls_OnDestroy(HWND hwnd) {
+
+	void* p_v_app = GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
+	TriggerQuit(p_v_app);
 
 	PostQuitMessage(0);
 }

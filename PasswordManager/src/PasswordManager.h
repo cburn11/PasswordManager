@@ -1,10 +1,14 @@
 #pragma once
 
+#include <Windows.h>
+#include <atlcomcli.h>
+
 #include "Accounts.h"
 #include "RecentFiles.h"
 #include "BrowserCommandDialog.h"
 #include "Tools.h"
 #include "ApplicationSettings.h"
+#include "pswdgen_h.h"
 
 #define APPLICATION_SUBKEY	L"SOFTWARE\\Clifford\\PasswordManager"
 
@@ -28,6 +32,8 @@ struct UserData {
 
 	WCHAR					* szTempFilePath = nullptr;
 
+	CComPtr<IApplication> p_pswdgen_Application{ nullptr };
+
 	~UserData() {
 		if( pAccounts )			delete pAccounts;
 		//if( pWebBrowser )		((IUnknown *) pWebBrowser)->Release();
@@ -36,6 +42,7 @@ struct UserData {
 		if( szTempFilePath )	delete[] szTempFilePath;
 		if( pTools )			delete pTools;
 		if( pSettings )			delete pSettings;
+
 	}
 };
 

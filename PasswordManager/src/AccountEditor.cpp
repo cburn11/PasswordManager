@@ -41,7 +41,8 @@ namespace AccountEditor {
 			if( wParam == VK_NEXT || wParam == VK_PRIOR ) {
 
 				PostMessage(hwndEditorWnd, WM_KEYDOWN, wParam, lParam);
-			}
+
+			} 
 
 			break;
 
@@ -62,6 +63,26 @@ namespace AccountEditor {
 
 		return FALSE;
 
+	}
+
+	std::wstring generate_password() {
+
+		std::wstring password;
+	
+		auto fUsePasswordGenerator = g_pUserData->pSettings->getDWORD(L"fUsePasswordGenerator");
+		if( fUsePasswordGenerator ) {
+			HRESULT hr;
+			BSTR bstrPassword;
+			hr = g_pUserData->p_pswdgen_Application->GeneratePassword(&bstrPassword);
+			if( S_OK == hr ) {
+				password = bstrPassword;
+				SysFreeString(bstrPassword);
+			}
+		} else {
+			password = ::GenerateRandomString(16);
+		}
+
+		return password;
 	}
 
 	void UpdateEditWnds(HWND hwndEditor, const Account * paccount) {
@@ -91,8 +112,8 @@ namespace AccountEditor {
 				std::wstring strRand{ ::GenerateRandomString(8) };
 				Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_ID), strRand.c_str());
 
-				Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_PASSWORD2),
-					::GenerateRandomString(16).c_str());
+				auto password = generate_password();
+				Edit_SetText(GetDlgItem(hwndEditor, IDC_EDIT_PASSWORD2), password.c_str());
 			}
 		}
 
@@ -103,7 +124,7 @@ namespace AccountEditor {
 	}
 
 	BOOL Cls_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam) {
-		
+
 		g_fDisableNavigation = lParam ? FALSE : TRUE;
 		
 		const Account * paccount = (const Account *) lParam;
@@ -144,7 +165,7 @@ namespace AccountEditor {
 
 		case IDOK: {
 
-			paccount = ( Account * ) new Account;
+			paccount = (Account*) new Account;
 			Account& account = *paccount;
 
 			account[L"id"] = MakeEditValueIntoString(GetDlgItem(hwnd, IDC_EDIT_ID));
@@ -158,19 +179,19 @@ namespace AccountEditor {
 
 			g_fUnsavedChanges = FALSE;
 		}
-			//	Fall through to IDCANCEL
+				 //	Fall through to IDCANCEL
 
 		case IDCANCEL:
 
 			if( g_fUnsavedChanges ) {
 
-				auto fSave = MessageBox(hwnd, L"Do you want to save changes before closing?", 
+				auto fSave = MessageBox(hwnd, L"Do you want to save changes before closing?",
 					L"Unsaved changes", MB_ICONQUESTION | MB_YESNO);
-				
+
 				if( IDYES == fSave ) {
 
 					// Simulate an OK (caption: Save) button press
-					PostMessage(hwnd, WM_COMMAND, MAKEWPARAM(IDOK, codeNotify), (LPARAM) hwndCtl);
+					PostMessage(hwnd, WM_COMMAND, MAKEWPARAM(IDOK, codeNotify), ( LPARAM ) hwndCtl);
 
 					break;
 
@@ -178,8 +199,8 @@ namespace AccountEditor {
 
 			}
 
-			EndDialog(hwnd, (INT_PTR) paccount);
-			
+			EndDialog(hwnd, ( INT_PTR ) paccount);
+
 			break;
 
 		case IDC_EDIT_ID:
@@ -198,7 +219,13 @@ namespace AccountEditor {
 
 			break;
 
+		case IDC_BUTTON_GENERATE_PASSWORD: {
+			std::wstring password = generate_password();
+			Edit_SetText(GetDlgItem(hwnd, IDC_EDIT_PASSWORD2), password.c_str());
+			break;
 		}
+
+		} // switch
 
 	}
 
